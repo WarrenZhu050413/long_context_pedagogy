@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Simple Teacher Mode KB</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; }
+      header { padding: 12px 16px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+      main { display: grid; grid-template-columns: 280px 1fr; height: calc(100vh - 56px); }
+      #sidebar { border-right: 1px solid #eee; overflow: auto; padding: 12px; }
+      #content { padding: 12px; overflow: auto; }
+      .slice { cursor: pointer; padding: 6px 8px; border-radius: 6px; }
+      .slice:hover { background: #f6f6f6; }
+      pre { white-space: pre-wrap; }
+      #graph { padding: 12px; border-bottom: 1px solid #eee; overflow: auto; }
+      #agent-graph { padding: 12px; border-bottom: 1px solid #eee; background: #fafafa; }
+      .mermaid { background: #fff; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+      window.addEventListener('DOMContentLoaded', async () => {
+        mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' });
+
+        async function fetchJSON(url) {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        }
+
+        // JSON graph fallbacks removed: graphs are Mermaid-only
+
+        async function loadGraph() {
+          const el = document.getElementById('graph');
+          try {
+            // Prefer canonical Mermaid graph
+            const res = await fetch('/kb/graph.mmd');
+            if (res.ok) {
+              const mmd = await res.text();
+              el.innerHTML = `<pre class="mermaid">${mmd}</pre>`;
+              await mermaid.run({ querySelector: '.mermaid' });
+              return;
+            }
+          } catch {}
+          el.textContent = 'Graph not available yet. Generate KB first.';
+        }
+
+        async function loadAgentGraph() {
+          const el = document.getElementById('agent-graph');
+          try {
+            const res = await fetch('/kb/agent_graph.mmd');
+            if (res.ok) {
+              const mmd = await res.text();
+              el.innerHTML = `<pre class="mermaid">${mmd}</pre>`;
+              await mermaid.run({ querySelector: '.mermaid' });
+              return;
+            }
+          } catch {}
+          el.textContent = 'Agent graph not available (optional).';
+        }
+
+        async function loadSlices() {
+          try {
+            const list = await fetchJSON('/kb/slices');
+            const container = document.getElementById('slices');
+            container.innerHTML = '';
+            list.items.forEach(item => {
+              const div = document.createElement('div');
+              div.className = 'slice';
+              div.textContent = item.slug;
+              div.addEventListener('click', () => loadSlice(item.slug));
+              container.appendChild(div);
+            });
+          } catch (e) {
+            document.getElementById('slices').textContent = 'No slices yet.';
+          }
+        }
+
+        async function loadSlice(slug) {
+          try {
+            const res = await fetch(`/kb/slices/${slug}`);
+            if (!res.ok) throw new Error('not found');
+            const md = await res.text();
+            document.getElementById('slice-content').textContent = md;
+          } catch (e) {
+            document.getElementById('slice-content').textContent = 'Slice not found.';
+          }
+        }
+
+        await loadAgentGraph();
+        await loadGraph();
+        await loadSlices();
+      });
+    </script>
+  </head>
+  <body>
+    <header>
+      <strong>Simple Teacher Mode KB</strong>
+      <span>Serve at <code>/kb/*</code> | Generate KB via <code>npm run setup -- path/to/book.pdf</code></span>
+    </header>
+    <div id="agent-graph"></div>
+    <div id="graph"></div>
+    <main>
+      <aside id="sidebar">
+        <h3>Slices</h3>
+        <div id="slices">Loading…</div>
+      </aside>
+      <section id="content">
+        <h3>Slice Markdown</h3>
+        <pre id="slice-content">Select a slice…</pre>
+      </section>
+    </main>
+  </body>
+</html>

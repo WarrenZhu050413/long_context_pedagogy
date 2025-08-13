@@ -1,0 +1,4 @@
+mcp>=0.1.0
+asyncio
+dataclasses
+typing-extensions>=4.0.0
