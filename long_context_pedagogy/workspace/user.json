@@ -1,0 +1,16 @@
+{
+  "name": "Test Learner",
+  "profile": {
+    "experience_level": "beginner",
+    "learning_style": "conceptual",
+    "interests": ["AI", "computation"],
+    "strengths": [],
+    "challenges": []
+  },
+  "learning_history": {
+    "sessions": [],
+    "concepts_mastered": [],
+    "concepts_in_progress": [],
+    "current_focus": "Introduction to Turing's ideas"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "title": "Table of Contents",
+  "items": [
+    {
+      "id": "slice_1",
+      "title": "Introduction",
+      "slug": "001-introduction",
+      "order": 1
+    },
+    {
+      "id": "slice_2",
+      "title": "COMPUTING MACHINERY AND INTELLIGENCE",
+      "slug": "002-computing-machinery-and-intelligence",
+      "order": 2
+    },
+    {
+      "id": "slice_3",
+      "title": "30 digits. Then the number of states is 10",
+      "slug": "003-30-digits.-then-the-number-of-states-is-10",
+      "order": 3
+    }
+  ]
+}

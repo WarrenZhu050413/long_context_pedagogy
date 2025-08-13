@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Teacher Mode - Session Observer</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            height: 100vh;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .sidebar-header h2 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        
+        .sidebar-header p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        /* Tab Navigation */
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .tab:hover {
+            background: #f9f9f9;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 10px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .session-list, .global-files {
+            padding: 10px;
+        }
+        
+        .session-item, .file-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .session-item:hover, .file-item:hover {
+            background: #f0f0f0;
+            transform: translateX(4px);
+        }
+        
+        .session-item.active, .file-item.active {
+            background: white;
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+        
+        .session-id, .file-name {
+            font-family: monospace;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        
+        .session-meta, .file-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #999;
+        }
+        
+        .file-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #667eea;
+            color: white;
+            border-radius: 10px;
+            font-size: 10px;
+        }
+        
+        .version-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #10b981;
+            color: white;
+            border-radius: 10px;
+            font-size: 10px;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .content-header {
+            padding: 20px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left {
+            flex: 1;
+        }
+        
+        .content-header h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .content-header .session-info {
+            font-family: monospace;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .content-body {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .content-body.single-column {
+            grid-template-columns: 1fr;
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .panel.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .panel-header {
+            padding: 16px 20px;
+            background: #fafafa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .panel-title {
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .panel-content {
+            flex: 1;
+            padding: 20px;
+            overflow: auto;
+        }
+        
+        /* JSON Viewer */
+        .json-viewer {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        /* Mermaid Graph */
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+        
+        /* Event List */
+        .event-list {
+            font-size: 12px;
+        }
+        
+        .event-item {
+            padding: 8px;
+            margin-bottom: 8px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        
+        .event-type {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .event-time {
+            color: #999;
+            font-size: 11px;
+        }
+        
+        .event-details {
+            color: #666;
+            font-family: monospace;
+            font-size: 11px;
+        }
+        
+        /* Loading and Empty States */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #999;
+        }
+        
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #999;
+            text-align: center;
+        }
+        
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+        
+        /* Status indicator */
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.active {
+            background: #10b981;
+        }
+        
+        .status-indicator.inactive {
+            background: #6b7280;
+            animation: none;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar with tabs -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>📚 Teacher Mode Observer</h2>
+            <p>Track Claude's understanding</p>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('sessions')">Sessions</div>
+            <div class="tab" onclick="switchTab('global')">Global Files</div>
+        </div>
+        
+        <div id="sessions-tab" class="tab-content active">
+            <div class="session-list" 
+                 hx-get="/sessions" 
+                 hx-trigger="load, every 5s"
+                 hx-target="this">
+                <div class="loading">Loading sessions...</div>
+            </div>
+        </div>
+        
+        <div id="global-tab" class="tab-content">
+            <div class="global-files" 
+                 hx-get="/global" 
+                 hx-trigger="load, every 5s"
+                 hx-target="this">
+                <div class="loading">Loading global files...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main content area -->
+    <div class="main-content">
+        <div class="content-header">
+            <div class="header-left">
+                <h1 id="content-title">Session Details</h1>
+                <div class="session-info" id="current-session">
+                    Select a session to view details
+                </div>
+            </div>
+        </div>
+        
+        <div class="content-body" id="session-content">
+            <div class="empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p>Select a session from the sidebar to view its files</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({ 
+            startOnLoad: false,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#667eea',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#5a67d8',
+                lineColor: '#5a67d8',
+                secondaryColor: '#f3f4f6',
+                tertiaryColor: '#fff'
+            }
+        });
+        
+        // Switch tabs
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+        
+        // Format timestamp
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleString();
+        }
+        
+        // Format JSON with syntax highlighting
+        function formatJSON(jsonStr) {
+            try {
+                const obj = JSON.parse(jsonStr);
+                return JSON.stringify(obj, null, 2)
+                    .replace(/(".*?")/g, '<span style="color: #0969da;">$1</span>')
+                    .replace(/: (true|false)/g, ': <span style="color: #cf222e;">$1</span>')
+                    .replace(/: (\d+)/g, ': <span style="color: #0550ae;">$1</span>')
+                    .replace(/: (null)/g, ': <span style="color: #6e7781;">$1</span>');
+            } catch {
+                return jsonStr;
+            }
+        }
+        
+        // Load session details
+        function loadSession(sessionId) {
+            // Update active state
+            document.querySelectorAll('.session-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
+            
+            // Update header
+            document.getElementById('content-title').textContent = 'Session Details';
+            document.getElementById('current-session').textContent = `Session: ${sessionId}`;
+            
+            // Load session content and events
+            Promise.all([
+                fetch(`/sessions/${sessionId}`).then(res => res.json()),
+                fetch(`/events/${sessionId}?limit=10`).then(res => res.json())
+            ]).then(([sessionData, events]) => {
+                let contentHtml = '';
+                
+                // User.json panel
+                contentHtml += `
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <span class="status-indicator ${sessionData.files['user.json'] ? 'active' : 'inactive'}"></span>
+                                👤 User Model
+                            </div>
+                            ${sessionData.files['user.json'] ? 
+                                `<span class="timestamp">Updated: ${formatTimestamp(sessionData.files['user.json'].timestamp)}</span>` : 
+                                '<span class="timestamp">Not yet created</span>'}
+                        </div>
+                        <div class="panel-content">`;
+                
+                if (sessionData.files['user.json']) {
+                    contentHtml += `<div class="json-viewer">${formatJSON(sessionData.files['user.json'].content)}</div>`;
+                } else {
+                    contentHtml += '<div class="empty-state"><p>user.json not yet created</p></div>';
+                }
+                
+                contentHtml += '</div></div>';
+                
+                // Full Knowledge Graph panel
+                contentHtml += `
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <span class="status-indicator ${sessionData.files['graph.mmd'] ? 'active' : 'inactive'}"></span>
+                                🗺️ Full Knowledge Graph
+                            </div>
+                            ${sessionData.files['graph.mmd'] ? 
+                                `<span class="timestamp">Updated: ${formatTimestamp(sessionData.files['graph.mmd'].timestamp)}</span>` : 
+                                '<span class="timestamp">Not yet created</span>'}
+                        </div>
+                        <div class="panel-content">`;
+                
+                if (sessionData.files['graph.mmd']) {
+                    contentHtml += `<div class="mermaid">${sessionData.files['graph.mmd'].content}</div>`;
+                } else {
+                    contentHtml += '<div class="empty-state"><p>graph.mmd not yet created</p></div>';
+                }
+                
+                contentHtml += '</div></div>';
+                
+                // User Knowledge Graph panel
+                contentHtml += `
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <span class="status-indicator ${sessionData.files['user_knowledge_graph.mmd'] ? 'active' : 'inactive'}"></span>
+                                🧠 User's Knowledge
+                            </div>
+                            ${sessionData.files['user_knowledge_graph.mmd'] ? 
+                                `<span class="timestamp">Updated: ${formatTimestamp(sessionData.files['user_knowledge_graph.mmd'].timestamp)}</span>` : 
+                                '<span class="timestamp">Not yet created</span>'}
+                        </div>
+                        <div class="panel-content">`;
+                
+                if (sessionData.files['user_knowledge_graph.mmd']) {
+                    contentHtml += `<div class="mermaid">${sessionData.files['user_knowledge_graph.mmd'].content}</div>`;
+                } else {
+                    contentHtml += '<div class="empty-state"><p>user_knowledge_graph.mmd not yet created</p></div>';
+                }
+                
+                contentHtml += '</div></div>';
+                
+                // Events panel
+                contentHtml += `
+                    <div class="panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                📝 Recent Events
+                            </div>
+                            <span class="timestamp">${events.length} events</span>
+                        </div>
+                        <div class="panel-content">
+                            <div class="event-list">`;
+                
+                if (events.length > 0) {
+                    events.forEach(event => {
+                        contentHtml += `
+                            <div class="event-item">
+                                <div class="event-header">
+                                    <span class="event-type">${event.event_type}</span>
+                                    <span class="event-time">${formatTimestamp(event.timestamp)}</span>
+                                </div>
+                                ${event.tool_name ? `<div class="event-details">Tool: ${event.tool_name}</div>` : ''}
+                            </div>`;
+                    });
+                } else {
+                    contentHtml += '<div class="empty-state"><p>No events recorded</p></div>';
+                }
+                
+                contentHtml += '</div></div></div>';
+                
+                document.getElementById('session-content').innerHTML = contentHtml;
+                
+                // Render Mermaid diagrams
+                mermaid.run();
+            }).catch(err => {
+                console.error('Error loading session:', err);
+                document.getElementById('session-content').innerHTML = 
+                    '<div class="empty-state"><p>Error loading session data</p></div>';
+            });
+        }
+        
+        // Load global file details
+        function loadGlobalFile(fileType) {
+            // Update active state
+            document.querySelectorAll('.file-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
+            
+            // Update header
+            document.getElementById('content-title').textContent = 'Global File';
+            document.getElementById('current-session').textContent = `File: ${fileType}`;
+            
+            // Load file content
+            fetch(`/global/${fileType}`)
+                .then(res => res.json())
+                .then(data => {
+                    let contentHtml = '<div class="content-body single-column">';
+                    
+                    contentHtml += `
+                        <div class="panel full-width">
+                            <div class="panel-header">
+                                <div class="panel-title">
+                                    <span class="status-indicator active"></span>
+                                    📄 ${fileType}
+                                </div>
+                                <div>
+                                    <span class="version-badge">v${data.version}</span>
+                                    <span class="timestamp">Updated: ${formatTimestamp(data.last_updated)}</span>
+                                </div>
+                            </div>
+                            <div class="panel-content">`;
+                    
+                    if (fileType.endsWith('.json')) {
+                        contentHtml += `<div class="json-viewer">${formatJSON(data.content)}</div>`;
+                    } else if (fileType.endsWith('.mmd')) {
+                        contentHtml += `<div class="mermaid">${data.content}</div>`;
+                    } else {
+                        contentHtml += `<pre>${data.content}</pre>`;
+                    }
+                    
+                    contentHtml += '</div></div></div>';
+                    
+                    document.getElementById('session-content').innerHTML = contentHtml;
+                    
+                    // Render Mermaid diagrams
+                    if (fileType.endsWith('.mmd')) {
+                        mermaid.run();
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading global file:', err);
+                    document.getElementById('session-content').innerHTML = 
+                        '<div class="empty-state"><p>File not found</p></div>';
+                });
+        }
+        
+        // Handle HTMX after swap
+        document.body.addEventListener('htmx:afterSwap', function(evt) {
+            if (evt.target.classList.contains('session-list')) {
+                // Parse and format the session list
+                try {
+                    const sessions = JSON.parse(evt.target.textContent);
+                    let html = '';
+                    
+                    if (sessions.length === 0) {
+                        html = '<div class="empty-state"><p>No sessions yet</p></div>';
+                    } else {
+                        sessions.forEach(session => {
+                            const updatedAt = new Date(session.last_updated * 1000);
+                            
+                            html += `
+                                <div class="session-item" onclick="loadSession('${session.id}')">
+                                    <div class="session-id">${session.id}</div>
+                                    <div class="session-meta">
+                                        <span>${updatedAt.toLocaleTimeString()}</span>
+                                        <span class="file-badge">${session.file_count} files</span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                    
+                    evt.target.innerHTML = html;
+                } catch (e) {
+                    console.error('Error parsing sessions:', e);
+                }
+            } else if (evt.target.classList.contains('global-files')) {
+                // Parse and format the global files list
+                try {
+                    const files = JSON.parse(evt.target.textContent);
+                    let html = '';
+                    
+                    if (files.length === 0) {
+                        html = '<div class="empty-state"><p>No global files yet</p></div>';
+                    } else {
+                        files.forEach(file => {
+                            const updatedAt = new Date(file.last_updated * 1000);
+                            
+                            html += `
+                                <div class="file-item" onclick="loadGlobalFile('${file.file_type}')">
+                                    <div class="file-name">${file.file_type}</div>
+                                    <div class="file-meta">
+                                        <span>${updatedAt.toLocaleTimeString()}</span>
+                                        <span class="version-badge">v${file.version}</span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                    
+                    evt.target.innerHTML = html;
+                } catch (e) {
+                    console.error('Error parsing global files:', e);
+                }
+            }
+        });
+        
+        // Auto-refresh current view
+        setInterval(() => {
+            const activeSession = document.querySelector('.session-item.active');
+            const activeFile = document.querySelector('.file-item.active');
+            
+            if (activeSession) {
+                const sessionId = activeSession.querySelector('.session-id').textContent;
+                loadSession.call(activeSession, sessionId);
+            } else if (activeFile) {
+                const fileType = activeFile.querySelector('.file-name').textContent;
+                loadGlobalFile.call(activeFile, fileType);
+            }
+        }, 5000);
+    </script>
+</body>
+</html>
