@@ -3,6 +3,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3');
+const KnowledgeGraphToMermaid = require('./utils/kg-to-mermaid.js');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -436,6 +437,126 @@ app.get('/health', (req, res) => {
     });
   }
 });
+
+// Initialize knowledge graph converter
+const kgConverter = new KnowledgeGraphToMermaid();
+
+// Mock MCP memory functions (to be replaced with actual MCP integration)
+const mockMCPMemory = {
+  async readGraph() {
+    // This would normally call the MCP memory server
+    // For now, return empty knowledge graph structure
+    return {
+      entities: [],
+      relations: []
+    };
+  }
+};
+
+// Knowledge graph delta endpoint
+app.get('/kb/delta', async (req, res) => {
+  try {
+    const workspace = req.query.workspace || 'ml-infra';
+    const workspacePath = getWorkspacePath(workspace);
+    
+    // Read user's knowledge graph
+    const userGraphPath = path.join(workspacePath, 'user_knowledge_graph.mmd');
+    const claudeGraphPath = path.join(workspacePath, 'claude_knowledge_graph.mmd');
+    
+    let userGraph = { entities: [], relations: [] };
+    let claudeGraph = { entities: [], relations: [] };
+    
+    // Try to read and parse existing mermaid files as knowledge graphs
+    if (fs.existsSync(userGraphPath)) {
+      const userMermaid = fs.readFileSync(userGraphPath, 'utf8');
+      userGraph = parseMermaidToKG(userMermaid, 'user');
+    }
+    
+    if (fs.existsSync(claudeGraphPath)) {
+      const claudeMermaid = fs.readFileSync(claudeGraphPath, 'utf8');
+      claudeGraph = parseMermaidToKG(claudeMermaid, 'claude');
+    }
+    
+    // For now, also try to get from MCP memory (mock)
+    try {
+      const mcpGraph = await mockMCPMemory.readGraph();
+      // Merge MCP graph into claudeGraph
+      if (mcpGraph.entities && mcpGraph.entities.length > 0) {
+        claudeGraph = mcpGraph;
+      }
+    } catch (error) {
+      console.warn('MCP memory not available, using file-based graphs only');
+    }
+    
+    // Create delta analysis
+    const delta = kgConverter.createDelta(userGraph, claudeGraph);
+    
+    res.json(delta);
+  } catch (error) {
+    console.error('Error creating knowledge graph delta:', error);
+    res.status(500).json({ error: 'Failed to create knowledge graph delta' });
+  }
+});
+
+// MCP memory integration endpoint
+app.get('/kb/mcp-graph', async (req, res) => {
+  try {
+    const mcpGraph = await mockMCPMemory.readGraph();
+    const mermaidCode = kgConverter.convertToMermaid(mcpGraph);
+    
+    res.json({
+      graph: mcpGraph,
+      mermaid: mermaidCode,
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('Error fetching MCP knowledge graph:', error);
+    res.status(500).json({ error: 'Failed to fetch MCP knowledge graph' });
+  }
+});
+
+// Utility function to parse simple Mermaid to knowledge graph structure
+function parseMermaidToKG(mermaidContent, source = 'unknown') {
+  const entities = [];
+  const relations = [];
+  
+  if (!mermaidContent) {
+    return { entities, relations };
+  }
+  
+  // Very basic parsing - extract nodes and edges
+  const lines = mermaidContent.split('\n').filter(line => line.trim() && !line.trim().startsWith('graph'));
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    
+    // Match node definitions like: A["Entity Name"]
+    const nodeMatch = trimmedLine.match(/(\w+)\["([^"]+)"\]/);
+    if (nodeMatch) {
+      const [, nodeId, entityName] = nodeMatch;
+      entities.push({
+        name: entityName,
+        entityType: source,
+        observations: []
+      });
+      continue;
+    }
+    
+    // Match edge definitions like: A --> B or A -->|"relation"| B
+    const edgeMatch = trimmedLine.match(/(\w+)\s*-->(?:\|"([^"]+)"\|)?\s*(\w+)/);
+    if (edgeMatch) {
+      const [, fromId, relationLabel, toId] = edgeMatch;
+      // Note: In real implementation, you'd need to map nodeIds back to entity names
+      relations.push({
+        from: fromId,
+        to: toId,
+        relationType: relationLabel || 'connected_to'
+      });
+    }
+  }
+  
+  return { entities, relations };
+}
 
 // Global error handler (must be last middleware)
 app.use((error, req, res, next) => {
