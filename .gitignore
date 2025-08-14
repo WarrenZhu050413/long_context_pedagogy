@@ -4,6 +4,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+llms
+llms2
+memorizz
+
+# claude
+.claude
+
 # Build outputs
 dist/
 build/
@@ -93,12 +100,6 @@ dist
 
 # Gatsby files
 .cache/
-public
-
-# Storybook build outputs
-.out
-.storybook-out
-
 # Temporary folders
 tmp/
 temp/
@@ -114,12 +115,6 @@ temp/
 *.njsproj
 *.sln
 *.sw?
-
-# IDE
-.idea/
-*.iml
-*.ipr
-*.iws
 
 # OS generated files
 .DS_Store
@@ -147,9 +142,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
-# Jupyter Notebook
-.ipynb_checkpoints
 
 # Testing
 .coverage

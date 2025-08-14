@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedagogy Learning System</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+    <script src="/utils/mermaid-to-ascii.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fafbfc;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        
+        /* Header - Minimalistic */
+        .header {
+            background: #ffffff;
+            color: #1f2937;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .header p {
+            color: #6b7280;
+            font-size: 0.9rem;
+            font-weight: 400;
+        }
+        
+        /* Workspace Selector - Enhanced */
+        .workspace-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .workspace-selector label {
+            font-weight: 500;
+            color: #6b7280;
+        }
+        
+        .workspace-selector select {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            color: #374151;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            min-width: 200px;
+            transition: border-color 0.15s ease;
+        }
+        
+        .workspace-selector select:hover {
+            border-color: #d1d5db;
+        }
+        
+        .workspace-selector select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .workspace-selector select option {
+            background: white;
+            color: #374151;
+        }
+        
+        /* Main Layout */
+        .main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 350px;
+            gap: 1rem;
+            padding: 1rem;
+            overflow: hidden;
+            height: calc(100vh - 100px); /* Account for header */
+        }
+        
+        /* Bottom row layout - 3 columns */
+        .bottom-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-column: 1 / -1;
+            gap: 1rem;
+        }
+        
+        /* Panels - Minimalistic */
+        .panel {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: box-shadow 0.15s ease;
+            height: 100%;
+        }
+        
+        .panel:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .panel-header {
+            padding: 0.75rem 1rem;
+            background: #f9fafb;
+            border-bottom: 1px solid #f3f4f6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 8px 8px 0 0;
+        }
+        
+        
+        .panel-title {
+            font-weight: 500;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .panel-content {
+            flex: 1;
+            padding: 1rem;
+            overflow: auto;
+            position: relative;  /* For absolute positioning of controls */
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Reduce padding further for bottom row panels */
+        .bottom-row .panel-content {
+            padding: 0.75rem;
+            height: 100%;
+            min-height: 0; /* Important for flexbox */
+        }
+        
+        /* Knowledge Graphs - Enhanced */
+        .mermaid {
+            position: relative;
+            height: 100%;
+            min-height: 300px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: grab;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        
+        /* Ensure main graphs fill their containers */
+        #claude-graph, #user-graph {
+            width: 100%;
+            height: calc(100% - 2rem); /* Account for panel padding */
+            min-height: 400px;
+        }
+        
+        .mermaid:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        
+        .mermaid:active {
+            cursor: grabbing;
+        }
+        
+        /* Mermaid diagrams should scale properly */
+        .mermaid svg {
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
+            transition: transform 0.2s ease;
+        }
+        
+        /* Graph controls - Enhanced */
+        .graph-controls {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 100;  /* Higher z-index to stay on top */
+            align-items: center;
+        }
+        
+        /* ASCII Tree View Styles */
+        .ascii-tree {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: pre;
+            overflow: auto;
+            padding: 1rem;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            height: 100%;
+            width: 100%;
+            box-sizing: border-box;
+            display: none;
+        }
+        
+        .view-toggle {
+            display: flex;
+            gap: 0.25rem;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .view-toggle button {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            border: none;
+            background: transparent;
+            color: #6b7280;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+        }
+        
+        .view-toggle button:hover {
+            background: #f3f4f6;
+        }
+        
+        .view-toggle button.active {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .zoom-indicator {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            min-width: 50px;
+            text-align: center;
+            color: #4b5563;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .graph-btn {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 0.4rem 0.6rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            color: #6b7280;
+            font-weight: 400;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .graph-btn:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .graph-btn:active {
+            background: #f3f4f6;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Fullscreen mode - Ultra aggressive overrides */
+        body.has-fullscreen {
+            overflow: hidden !important;
+        }
+        
+        .panel.graph-fullscreen {
+            position: fixed !important;
+            inset: 0 !important;  /* Shorthand for top/right/bottom/left: 0 */
+            width: 100vw !important;
+            height: 100vh !important;
+            min-width: 100vw !important;
+            min-height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            background: white !important;
+            z-index: 99999 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            transform: none !important;
+            display: flex !important;
+            flex-direction: column !important;
+            isolation: isolate !important;  /* Create new stacking context */
+        }
+        
+        .panel.graph-fullscreen .panel-header {
+            border-radius: 0 !important;
+            flex-shrink: 0;
+        }
+        
+        .panel.graph-fullscreen .panel-content {
+            flex: 1 !important;
+            height: calc(100vh - 60px) !important;  /* Account for header */
+            max-height: none !important;
+            overflow: hidden !important;  /* Let the SVG handle scrolling */
+            position: relative !important;
+            padding: 0 !important;  /* Remove padding for full space */
+        }
+        
+        .panel.graph-fullscreen .graph-controls {
+            z-index: 10000 !important;  /* Stay on top in fullscreen */
+            position: absolute !important;
+            top: 1rem !important;
+            right: 1rem !important;
+        }
+        
+        .panel.graph-fullscreen .mermaid {
+            height: 100% !important;
+            width: 100% !important;
+            display: block !important;  /* Changed from flex to block */
+            position: relative !important;
+        }
+        
+        .panel.graph-fullscreen .mermaid svg {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            max-height: none !important;
+        }
+        
+        /* Ensure graph divs use full space in fullscreen */
+        .panel.graph-fullscreen #claude-graph,
+        .panel.graph-fullscreen #user-graph {
+            height: calc(100vh - 60px) !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+        }
+        
+        /* Hide other panels when one is fullscreen */
+        body:has(.graph-fullscreen) .panel:not(.graph-fullscreen) {
+            display: none !important;
+        }
+        
+        /* Hide main container padding in fullscreen */
+        body:has(.graph-fullscreen) .container {
+            padding: 0 !important;
+            max-width: none !important;
+        }
+        
+        /* Error display improvements */
+        .error {
+            color: #dc2626;
+            text-align: center;
+            padding: 2rem;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 4px;
+        }
+        
+        .error details {
+            margin-top: 1rem;
+            text-align: left;
+        }
+        
+        .error summary {
+            cursor: pointer;
+            color: #374151;
+            font-weight: 500;
+        }
+        
+        .error pre {
+            background: #f3f4f6;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            overflow-x: auto;
+            margin-top: 0.5rem;
+        }
+        
+        /* User Profile - Enhanced */
+        .user-profile {
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        .profile-section {
+            margin-bottom: 1.25rem;
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 12px;
+            border-left: 4px solid #10b981;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .profile-section:hover {
+            transform: translateX(2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .profile-section h4 {
+            margin: 0 0 0.75rem 0;
+            color: #1f2937;
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .profile-section p {
+            margin: 0.5rem 0;
+            color: #4b5563;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        /* Delta View Styling */
+        .delta-view {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            height: 100%;
+            min-height: 0; /* Important for flexbox children */
+        }
+        
+        .delta-summary {
+            background: #f9fafb;
+            border-radius: 6px;
+            padding: 0.6rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid #f3f4f6;
+            font-size: 0.8rem;
+            color: #6b7280;
+            flex-shrink: 0;
+        }
+        
+        .delta-tabs {
+            display: flex;
+            gap: 0.25rem;
+            border-bottom: 1px solid #f3f4f6;
+            padding-bottom: 0.4rem;
+            margin-bottom: 0.6rem;
+            flex-shrink: 0;
+        }
+        
+        .delta-tab {
+            background: transparent;
+            border: none;
+            padding: 0.4rem 0.75rem;
+            border-radius: 4px;
+            font-weight: 400;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-size: 0.8rem;
+        }
+        
+        .delta-tab:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        .delta-tab.active {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 1px 2px rgba(59, 130, 246, 0.2);
+        }
+        
+        .delta-content {
+            flex: 1;
+            position: relative;
+            min-height: 250px;
+            height: calc(100% - 80px); /* Account for tabs and summary */
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .delta-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .delta-panel.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .delta-graph {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            border-radius: 12px;
+            display: flex;
+        }
+        
+        .delta-graph .mermaid {
+            width: 100%;
+            height: 100%;
+            min-height: 250px;
+        }
+        
+        .delta-graph svg {
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
+        }
+        
+        /* Event Stream - Enhanced */
+        .event-stream {
+            max-height: 280px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f1f5f9;
+        }
+        
+        .event-stream::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .event-stream::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+        
+        .event-stream::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .event-stream::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+        
+        .event-item {
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 12px;
+            border-left: 4px solid #f59e0b;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .event-item:hover {
+            transform: translateX(2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-left-color: #d97706;
+        }
+        
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+        
+        .event-type {
+            font-weight: 600;
+            color: #f59e0b;
+        }
+        
+        .event-time {
+            color: #64748b;
+            font-size: 0.75rem;
+        }
+        
+        .event-details {
+            color: #475569;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+        }
+        
+        .conversation-prompt {
+            color: #374151;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 0.5rem;
+            border-radius: 3px;
+            margin-top: 0.25rem;
+        }
+        
+        /* Status indicators */
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        
+        .status-active {
+            background: #22c55e;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-inactive {
+            background: #94a3b8;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        /* Loading states - Enhanced */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #64748b;
+            font-style: normal;
+            text-align: center;
+            gap: 1rem;
+        }
+        
+        .loading::before {
+            content: '';
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 0.9rem;
+            color: #475569;
+            font-weight: 500;
+        }
+        
+        /* Error states - Enhanced */
+        .error {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #dc2626;
+            text-align: center;
+            padding: 2rem;
+            gap: 1rem;
+        }
+        
+        .error::before {
+            content: '⚠️';
+            font-size: 2rem;
+            opacity: 0.7;
+        }
+        
+        .error-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #991b1b;
+            margin-bottom: 0.5rem;
+        }
+        
+        .error-message {
+            font-size: 0.9rem;
+            color: #dc2626;
+            opacity: 0.8;
+        }
+        
+        /* Minimalistic user profile styles */
+        .user-profile.compact {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            justify-content: space-between;
+        }
+        
+        .user-profile.compact .profile-section {
+            margin-bottom: 1rem;
+            padding: 1rem 0.8rem;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #f1f5f9;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        
+        .user-profile.compact .profile-section h4 {
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-bottom: 0.6rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .user-profile.compact .profile-item {
+            padding: 0.4rem 0;
+            color: #374151;
+            font-weight: 400;
+        }
+        
+        .user-profile.compact .profile-item strong {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #64748b;
+        }
+        
+        .user-profile.compact .no-goals {
+            font-style: italic;
+            color: #94a3b8;
+            padding: 0.4rem 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .bottom-row {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 1fr 1fr;
+            }
+            
+            .bottom-row .panel:nth-child(3) {
+                grid-column: 1 / -1;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto auto;
+            }
+            
+            .bottom-row {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto;
+                grid-column: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>🎓 Pedagogy Learning System</h1>
+            <p>Visual learning with knowledge gap tracking</p>
+        </div>
+        <div class="workspace-selector">
+            <label for="workspace-select">Workspace:</label>
+            <select id="workspace-select">
+                <option value="">Loading workspaces...</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="main">
+        <!-- Claude's Knowledge Graph -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="status-indicator" id="claude-status"></span>
+                    🧠 Claude's Knowledge
+                </div>
+                <span id="claude-update-time" class="event-time">Loading...</span>
+            </div>
+            <div class="panel-content">
+                <div class="graph-controls">
+                    <div class="view-toggle">
+                        <button class="active" onclick="toggleView('claude', 'graph', this)">Graph</button>
+                        <button onclick="toggleView('claude', 'ascii', this)">ASCII</button>
+                    </div>
+                    <span id="claude-zoom-level" class="zoom-indicator">100%</span>
+                    <button class="graph-btn" onclick="zoomGraph('claude-graph', 1.2)">🔍+</button>
+                    <button class="graph-btn" onclick="zoomGraph('claude-graph', 0.8)">🔍-</button>
+                    <button class="graph-btn" onclick="fitToWindow('claude-graph')" title="Fit to window">⊡</button>
+                    <button class="graph-btn" onclick="resetGraph('claude-graph')">↻</button>
+                    <button class="graph-btn" onclick="toggleFullscreen('claude-graph')" title="Fullscreen (ESC to exit)">⛶</button>
+                </div>
+                <div id="claude-graph" class="mermaid">
+                    Loading Claude's knowledge graph...
+                </div>
+                <div id="claude-ascii" class="ascii-tree">
+                    Loading ASCII tree...
+                </div>
+            </div>
+        </div>
+        
+        <!-- User's Knowledge Graph -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="status-indicator" id="user-status"></span>
+                    👤 Your Knowledge
+                </div>
+                <span id="user-update-time" class="event-time">Loading...</span>
+            </div>
+            <div class="panel-content">
+                <div class="graph-controls">
+                    <div class="view-toggle">
+                        <button class="active" onclick="toggleView('user', 'graph', this)">Graph</button>
+                        <button onclick="toggleView('user', 'ascii', this)">ASCII</button>
+                    </div>
+                    <span id="user-zoom-level" class="zoom-indicator">100%</span>
+                    <button class="graph-btn" onclick="zoomGraph('user-graph', 1.2)">🔍+</button>
+                    <button class="graph-btn" onclick="zoomGraph('user-graph', 0.8)">🔍-</button>
+                    <button class="graph-btn" onclick="fitToWindow('user-graph')" title="Fit to window">⊡</button>
+                    <button class="graph-btn" onclick="resetGraph('user-graph')">↻</button>
+                    <button class="graph-btn" onclick="toggleFullscreen('user-graph')" title="Fullscreen (ESC to exit)">⛶</button>
+                </div>
+                <div id="user-graph" class="mermaid">
+                    Loading your knowledge graph...
+                </div>
+                <div id="user-ascii" class="ascii-tree">
+                    Loading ASCII tree...
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom Row: Learning Profile, Knowledge Gap Analysis, Learning Activity -->
+        <div class="bottom-row">
+            <!-- User Profile -->
+            <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="status-indicator" id="profile-status"></span>
+                    📊 Learning Profile
+                </div>
+                <span id="profile-update-time" class="event-time">Loading...</span>
+            </div>
+            <div class="panel-content">
+                <div id="user-profile" class="user-profile compact">Loading user profile...</div>
+            </div>
+        </div>
+        
+        <!-- Knowledge Graph Delta -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="status-indicator" id="delta-status"></span>
+                    🔄 Knowledge Gap Analysis
+                </div>
+                <span id="delta-update-time" class="event-time">Updated 6:07:38 PM</span>
+            </div>
+            <div class="panel-content">
+                <div class="delta-view">
+                    <div class="delta-summary" id="delta-summary">Loading delta analysis...</div>
+                    <div id="claude-recommendations" style="margin: 1rem 0; padding: 1rem; background: #f0f9ff; border: 1px solid #0284c7; border-radius: 8px; font-size: 0.85rem; line-height: 1.6;">
+                        <em>⏳ Generating personalized learning recommendations...</em>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Event Stream -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="status-indicator" id="events-status"></span>
+                    📝 Learning Activity
+                </div>
+                <span id="events-count" class="event-time">Loading...</span>
+            </div>
+            <div class="panel-content">
+                <div id="event-stream" class="event-stream">Loading recent activity...</div>
+            </div>
+        </div>
+        </div>
+    </div>
+    
+    <script>
+        // Global state
+        let currentWorkspace = null;
+        let workspaces = [];
+        let claudePanZoom = null;
+        let userPanZoom = null;
+        
+        // Zoom state preservation
+        let claudeZoomState = { zoom: 1, pan: { x: 0, y: 0 }, isInitialized: false };
+        let userZoomState = { zoom: 1, pan: { x: 0, y: 0 }, isInitialized: false };
+        
+        // Initialize Mermaid
+        mermaid.initialize({ 
+            startOnLoad: false,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#dbeafe',
+                primaryTextColor: '#1e40af',
+                primaryBorderColor: '#3b82f6',
+                lineColor: '#6b7280',
+                secondaryColor: '#f0fdf4',
+                secondaryTextColor: '#166534',
+                secondaryBorderColor: '#22c55e',
+                tertiaryColor: '#fef3c7',
+                tertiaryTextColor: '#92400e',
+                tertiaryBorderColor: '#f59e0b',
+                background: '#ffffff',
+                mainBkg: '#f8fafc',
+                nodeBorder: '#e2e8f0',
+                clusterBkg: '#f1f5f9'
+            }
+        });
+        
+        // Utility functions
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString();
+        }
+        
+        function setStatus(elementId, active) {
+            const element = document.getElementById(elementId);
+            element.className = `status-indicator ${active ? 'status-active' : 'status-inactive'}`;
+        }
+        
+        function formatJSON(data) {
+            try {
+                if (typeof data === 'string') {
+                    data = JSON.parse(data);
+                }
+                return JSON.stringify(data, null, 2);
+            } catch {
+                return data;
+            }
+        }
+        
+        function formatUserProfile(userConceptCount, claudeConceptCount) {
+            const percentage = claudeConceptCount > 0 ? Math.round((userConceptCount / claudeConceptCount) * 100) : 0;
+            
+            return `
+                <div style="width: 100%;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="font-weight: 600;">Learning Progress</span>
+                        <span style="font-weight: 600; color: #3b82f6;">${percentage}%</span>
+                    </div>
+                    <div style="background: #e2e8f0; border-radius: 8px; height: 24px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #3b82f6, #2563eb); height: 100%; width: ${percentage}%; transition: width 0.5s ease;"></div>
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #64748b; text-align: center;">
+                        ${userConceptCount} of ${claudeConceptCount} concepts mastered
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Store mermaid code for ASCII conversion
+        let claudeMermaidCode = '';
+        let userMermaidCode = '';
+        const asciiConverter = new MermaidToAscii();
+        
+        // Toggle between graph and ASCII views
+        function toggleView(graphType, viewType, button) {
+            const graphEl = document.getElementById(`${graphType}-graph`);
+            const asciiEl = document.getElementById(`${graphType}-ascii`);
+            const toggleButtons = button.parentElement.querySelectorAll('button');
+            
+            // Update button states
+            toggleButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            if (viewType === 'ascii') {
+                // Hide graph, show ASCII
+                graphEl.style.display = 'none';
+                asciiEl.style.display = 'block';
+                
+                // Convert and display ASCII tree
+                const mermaidCode = graphType === 'claude' ? claudeMermaidCode : userMermaidCode;
+                if (mermaidCode) {
+                    const asciiTree = asciiConverter.convertToAscii(mermaidCode, {
+                        maxWidth: 100,
+                        showRelations: true,
+                        compactMode: false
+                    });
+                    asciiEl.textContent = asciiTree;
+                } else {
+                    asciiEl.textContent = 'No graph data available for ASCII conversion';
+                }
+                
+                // Hide zoom controls for ASCII view
+                const zoomControls = graphEl.parentElement.querySelectorAll('.zoom-indicator, .graph-btn');
+                zoomControls.forEach(el => {
+                    if (!el.textContent.includes('Graph') && !el.textContent.includes('ASCII')) {
+                        el.style.display = viewType === 'ascii' ? 'none' : '';
+                    }
+                });
+            } else {
+                // Show graph, hide ASCII
+                graphEl.style.display = 'block';
+                asciiEl.style.display = 'none';
+                
+                // Show zoom controls for graph view
+                const zoomControls = graphEl.parentElement.querySelectorAll('.zoom-indicator, .graph-btn');
+                zoomControls.forEach(el => {
+                    el.style.display = '';
+                });
+            }
+        }
+        
+        // Get Claude's learning recommendations (auto-called)
+        async function getClaudeRecommendations(silent = false) {
+            const recommendationsDiv = document.getElementById('claude-recommendations');
+            
+            try {
+                // Show loading state only if not silent
+                if (!silent) {
+                    recommendationsDiv.innerHTML = '<em>⏳ Analyzing your knowledge gaps and preparing personalized recommendations...</em>';
+                }
+                
+                // Fetch recommendations from server
+                const response = await fetch('/kb/recommendations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        workspace: currentWorkspace
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.recommendations) {
+                    // Convert markdown to HTML (basic conversion)
+                    let html = data.recommendations
+                        .replace(/^### (.+)$/gm, '<h4>$1</h4>')
+                        .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+                        .replace(/^# (.+)$/gm, '<h2>$1</h2>')
+                        .replace(/^\* (.+)$/gm, '<li>$1</li>')
+                        .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+                        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\n\n/g, '</p><p>')
+                        .replace(/^/, '<p>')
+                        .replace(/$/, '</p>');
+                    
+                    // Wrap lists
+                    html = html.replace(/(<li>.*<\/li>\s*)+/g, '<ul>$&</ul>');
+                    
+                    recommendationsDiv.innerHTML = `
+                        <div style="margin-bottom: 0.5rem;">
+                            <strong style="color: #0284c7;">🎯 Personalized Learning Path</strong>
+                        </div>
+                        ${html}
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #cbd5e1; font-size: 0.75rem; color: #64748b;">
+                            Generated based on ${data.knowledgeGaps?.length || 0} knowledge gaps identified
+                        </div>
+                    `;
+                } else if (data.fallbackRecommendations) {
+                    recommendationsDiv.innerHTML = `
+                        <div style="color: #dc2626;">
+                            ⚠️ Could not generate personalized recommendations<br>
+                            <small>${data.error || 'Unknown error'}</small>
+                        </div>
+                        <p style="margin-top: 0.5rem;">${data.fallbackRecommendations}</p>
+                    `;
+                } else {
+                    throw new Error('No recommendations received');
+                }
+                
+            } catch (error) {
+                console.error('Error getting recommendations:', error);
+                recommendationsDiv.innerHTML = `
+                    <div style="color: #dc2626;">
+                        ❌ Error: ${error.message}<br>
+                        <small>Please ensure Claude CLI is installed and configured</small>
+                    </div>
+                `;
+            } finally {
+                // No button to reset in auto mode
+            }
+        }
+        
+        // Workspace management
+        async function loadWorkspaces() {
+            try {
+                const response = await fetch('/workspaces');
+                if (response.ok) {
+                    workspaces = await response.json();
+                    populateWorkspaceSelector();
+                    
+                    // Auto-select first workspace if none selected
+                    if (!currentWorkspace && workspaces.length > 0) {
+                        currentWorkspace = workspaces[0].id;
+                        document.getElementById('workspace-select').value = currentWorkspace;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading workspaces:', error);
+            }
+        }
+        
+        function populateWorkspaceSelector() {
+            const select = document.getElementById('workspace-select');
+            select.innerHTML = '';
+            
+            if (workspaces.length === 0) {
+                select.innerHTML = '<option value="">No workspaces found</option>';
+                return;
+            }
+            
+            workspaces.forEach(workspace => {
+                const option = document.createElement('option');
+                option.value = workspace.id;
+                option.textContent = `${workspace.name} (${workspace.topic})`;
+                select.appendChild(option);
+            });
+            
+            // Add event listener for workspace change
+            select.addEventListener('change', (e) => {
+                currentWorkspace = e.target.value;
+                if (currentWorkspace) {
+                    loadAll();
+                }
+            });
+        }
+        
+        function getWorkspaceParam() {
+            return currentWorkspace ? `?workspace=${encodeURIComponent(currentWorkspace)}` : '';
+        }
+        
+        // Graph interaction functions
+        function zoomGraph(graphId, factor) {
+            const panZoomInstance = graphId === 'claude-graph' ? claudePanZoom : userPanZoom;
+            if (panZoomInstance) {
+                if (factor > 1) {
+                    panZoomInstance.zoomIn();
+                } else {
+                    panZoomInstance.zoomOut();
+                }
+            } else {
+                // Fallback to CSS transform if svg-pan-zoom not available
+                const graphElement = document.getElementById(graphId);
+                const svg = graphElement.querySelector('svg');
+                if (svg) {
+                    const currentTransform = svg.style.transform || 'scale(1)';
+                    const currentScale = parseFloat(currentTransform.match(/scale\(([\d.]+)\)/)?.[1] || '1');
+                    const newScale = Math.max(0.3, Math.min(5, currentScale * factor));
+                    svg.style.transform = `scale(${newScale})`;
+                    svg.style.transformOrigin = 'center center';
+                }
+            }
+        }
+        
+        function resetGraph(graphId) {
+            const panZoomInstance = graphId === 'claude-graph' ? claudePanZoom : userPanZoom;
+            if (panZoomInstance) {
+                panZoomInstance.resetZoom();
+                panZoomInstance.center();
+            } else {
+                // Fallback to CSS transform if svg-pan-zoom not available
+                const graphElement = document.getElementById(graphId);
+                const svg = graphElement.querySelector('svg');
+                if (svg) {
+                    svg.style.transform = 'scale(1)';
+                    svg.style.transformOrigin = 'center center';
+                }
+            }
+        }
+        
+        function toggleFullscreen(graphId) {
+            const panel = document.getElementById(graphId).closest('.panel');
+            const isFullscreen = panel.classList.contains('graph-fullscreen');
+            const instance = graphId === 'claude-graph' ? claudePanZoom : userPanZoom;
+            
+            if (isFullscreen) {
+                // Exit fullscreen
+                panel.classList.remove('graph-fullscreen');
+                document.body.classList.remove('has-fullscreen');
+                document.body.style.overflow = '';
+                
+                // Force style recalculation
+                panel.style.display = 'none';
+                panel.offsetHeight; // Trigger reflow
+                panel.style.display = '';
+            } else {
+                // Enter fullscreen
+                panel.classList.add('graph-fullscreen');
+                document.body.classList.add('has-fullscreen');
+                document.body.style.overflow = 'hidden';
+                
+                // Force the panel to expand
+                panel.style.position = 'fixed';
+                panel.style.inset = '0';
+                panel.style.width = '100vw';
+                panel.style.height = '100vh';
+            }
+            
+            // Reinitialize pan-zoom for new viewport
+            setTimeout(() => {
+                if (instance) {
+                    instance.resize();  // Update cached sizes
+                    instance.fit();     // Fit to container
+                    instance.center();  // Center content
+                }
+            }, 300);  // Wait for CSS transition
+        }
+        
+        function fitToWindow(graphId) {
+            const instance = graphId === 'claude-graph' ? claudePanZoom : userPanZoom;
+            if (instance) {
+                instance.resetZoom();  // Reset to initial zoom
+                instance.fit();        // Fit to container
+                instance.center();     // Center content
+                
+                // Update zoom indicator
+                const indicator = document.getElementById(graphId + '-zoom-level');
+                if (indicator) {
+                    const zoom = Math.round(instance.getZoom() * 100);
+                    indicator.textContent = zoom + '%';
+                }
+            } else {
+                // Fallback if svg-pan-zoom not available
+                resetGraph(graphId);
+            }
+        }
+        
+        // Add keyboard support for fullscreen exit
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const fullscreenPanel = document.querySelector('.graph-fullscreen');
+                if (fullscreenPanel) {
+                    fullscreenPanel.classList.remove('graph-fullscreen');
+                    document.body.classList.remove('has-fullscreen');
+                    document.body.style.overflow = '';
+                    
+                    // Remove inline styles
+                    fullscreenPanel.style.position = '';
+                    fullscreenPanel.style.inset = '';
+                    fullscreenPanel.style.width = '';
+                    fullscreenPanel.style.height = '';
+                }
+            }
+        });
+        
+        // Load Claude's knowledge graph
+        async function loadClaudeGraph() {
+            try {
+                const response = await fetch('/kb/claude-graph' + getWorkspaceParam());
+                if (response.ok) {
+                    const mermaidCode = await response.text();
+                    claudeMermaidCode = mermaidCode; // Store for ASCII conversion
+                    
+                    // Validate and render Mermaid
+                    const claudeGraphElement = document.getElementById('claude-graph');
+                    try {
+                        // Clear any existing content
+                        claudeGraphElement.innerHTML = '';
+                        
+                        // Create a properly formatted div for Mermaid
+                        const mermaidDiv = document.createElement('div');
+                        mermaidDiv.className = 'mermaid';
+                        mermaidDiv.textContent = mermaidCode.trim();
+                        claudeGraphElement.appendChild(mermaidDiv);
+                        
+                        // Render with error handling
+                        await mermaid.run({
+                            querySelector: '#claude-graph .mermaid'
+                        });
+                        
+                        // Initialize svg-pan-zoom after Mermaid renders
+                        setTimeout(() => {
+                            const svgElement = document.querySelector('#claude-graph svg');
+                            if (svgElement && typeof svgPanZoom !== 'undefined') {
+                                // Save current zoom state before destroying
+                                if (claudePanZoom) {
+                                    try {
+                                        claudeZoomState.zoom = claudePanZoom.getZoom();
+                                        claudeZoomState.pan = claudePanZoom.getPan();
+                                        claudeZoomState.isInitialized = true;
+                                    } catch (e) {
+                                        console.log('Could not save zoom state:', e);
+                                    }
+                                    claudePanZoom.destroy();
+                                }
+                                
+                                claudePanZoom = svgPanZoom(svgElement, {
+                                    zoomEnabled: true,
+                                    controlIconsEnabled: false, // We use our own controls
+                                    fit: true,
+                                    center: true,
+                                    minZoom: 0.05,      // Allow 20x zoom out
+                                    maxZoom: 500,       // Allow 500x zoom in for deep inspection
+                                    zoomScaleSensitivity: 0.25,  // Smoother zoom steps
+                                    mouseWheelZoomEnabled: true,
+                                    dblClickZoomEnabled: true,
+                                    preventMouseEventsDefault: true,
+                                    beforeZoom: function(oldZoom, newZoom) {
+                                        // Update zoom indicator
+                                        const percentage = Math.round(newZoom * 100);
+                                        const indicator = document.getElementById('claude-zoom-level');
+                                        if (indicator) {
+                                            indicator.textContent = percentage + '%';
+                                        }
+                                        return true;  // Allow zoom
+                                    }
+                                });
+                                
+                                // Restore previous zoom state if it exists
+                                if (claudeZoomState.isInitialized) {
+                                    try {
+                                        claudePanZoom.zoom(claudeZoomState.zoom);
+                                        claudePanZoom.pan(claudeZoomState.pan);
+                                        // Update zoom indicator
+                                        const indicator = document.getElementById('claude-zoom-level');
+                                        if (indicator) {
+                                            indicator.textContent = Math.round(claudeZoomState.zoom * 100) + '%';
+                                        }
+                                    } catch (e) {
+                                        console.log('Could not restore zoom state:', e);
+                                    }
+                                }
+                            }
+                        }, 100);
+                        
+                        setStatus('claude-status', true);
+                        document.getElementById('claude-update-time').textContent = 'Just updated';
+                    } catch (mermaidError) {
+                        console.error('Mermaid rendering error:', mermaidError);
+                        claudeGraphElement.innerHTML = `
+                            <div class="error">
+                                <strong>Graph rendering error</strong><br>
+                                <details>
+                                    <summary>Raw graph data</summary>
+                                    <pre>${mermaidCode}</pre>
+                                </details>
+                            </div>
+                        `;
+                        setStatus('claude-status', false);
+                    }
+                } else {
+                    throw new Error('Not found');
+                }
+            } catch (error) {
+                document.getElementById('claude-graph').innerHTML = 
+                    '<div class="loading"><div class="loading-text">Claude\'s knowledge graph not yet created.<br>Start a learning session to build it.</div></div>';
+                setStatus('claude-status', false);
+                document.getElementById('claude-update-time').textContent = 'Not available';
+            }
+        }
+        
+        // Load user's knowledge graph
+        async function loadUserGraph() {
+            try {
+                const response = await fetch('/kb/user-graph' + getWorkspaceParam());
+                if (response.ok) {
+                    const mermaidCode = await response.text();
+                    userMermaidCode = mermaidCode; // Store for ASCII conversion
+                    
+                    // Validate and render Mermaid
+                    const userGraphElement = document.getElementById('user-graph');
+                    try {
+                        // Clear any existing content
+                        userGraphElement.innerHTML = '';
+                        
+                        // Create a properly formatted div for Mermaid
+                        const mermaidDiv = document.createElement('div');
+                        mermaidDiv.className = 'mermaid';
+                        mermaidDiv.textContent = mermaidCode.trim();
+                        userGraphElement.appendChild(mermaidDiv);
+                        
+                        // Render with error handling
+                        await mermaid.run({
+                            querySelector: '#user-graph .mermaid'
+                        });
+                        
+                        // Initialize svg-pan-zoom after Mermaid renders
+                        setTimeout(() => {
+                            const svgElement = document.querySelector('#user-graph svg');
+                            if (svgElement && typeof svgPanZoom !== 'undefined') {
+                                // Save current zoom state before destroying
+                                if (userPanZoom) {
+                                    try {
+                                        userZoomState.zoom = userPanZoom.getZoom();
+                                        userZoomState.pan = userPanZoom.getPan();
+                                        userZoomState.isInitialized = true;
+                                    } catch (e) {
+                                        console.log('Could not save user zoom state:', e);
+                                    }
+                                    userPanZoom.destroy();
+                                }
+                                
+                                userPanZoom = svgPanZoom(svgElement, {
+                                    zoomEnabled: true,
+                                    controlIconsEnabled: false, // We use our own controls
+                                    fit: true,
+                                    center: true,
+                                    minZoom: 0.05,      // Allow 20x zoom out
+                                    maxZoom: 500,       // Allow 500x zoom in for deep inspection
+                                    zoomScaleSensitivity: 0.25,  // Smoother zoom steps
+                                    mouseWheelZoomEnabled: true,
+                                    dblClickZoomEnabled: true,
+                                    preventMouseEventsDefault: true,
+                                    beforeZoom: function(oldZoom, newZoom) {
+                                        // Update zoom indicator
+                                        const percentage = Math.round(newZoom * 100);
+                                        const indicator = document.getElementById('user-zoom-level');
+                                        if (indicator) {
+                                            indicator.textContent = percentage + '%';
+                                        }
+                                        return true;  // Allow zoom
+                                    }
+                                });
+                                
+                                // Restore previous zoom state if it exists
+                                if (userZoomState.isInitialized) {
+                                    try {
+                                        userPanZoom.zoom(userZoomState.zoom);
+                                        userPanZoom.pan(userZoomState.pan);
+                                        // Update zoom indicator
+                                        const indicator = document.getElementById('user-zoom-level');
+                                        if (indicator) {
+                                            indicator.textContent = Math.round(userZoomState.zoom * 100) + '%';
+                                        }
+                                    } catch (e) {
+                                        console.log('Could not restore user zoom state:', e);
+                                    }
+                                }
+                            }
+                        }, 100);
+                        
+                        setStatus('user-status', true);
+                        document.getElementById('user-update-time').textContent = 'Just updated';
+                    } catch (mermaidError) {
+                        console.error('User graph Mermaid rendering error:', mermaidError);
+                        userGraphElement.innerHTML = `
+                            <div class="error">
+                                <strong>Graph rendering error</strong><br>
+                                <details>
+                                    <summary>Raw graph data</summary>
+                                    <pre>${mermaidCode}</pre>
+                                </details>
+                            </div>
+                        `;
+                        setStatus('user-status', false);
+                    }
+                } else {
+                    throw new Error('Not found');
+                }
+            } catch (error) {
+                document.getElementById('user-graph').innerHTML = 
+                    '<div class="loading"><div class="loading-text">Your knowledge graph not yet created.<br>Begin learning to track your progress.</div></div>';
+                setStatus('user-status', false);
+                document.getElementById('user-update-time').textContent = 'Not available';
+            }
+        }
+        
+        // Load user profile
+        // Store concept counts globally
+        let globalUserConceptCount = 0;
+        let globalClaudeConceptCount = 0;
+        
+        async function loadUserProfile() {
+            // Use the global concept counts from delta analysis
+            if (globalUserConceptCount > 0 || globalClaudeConceptCount > 0) {
+                document.getElementById('user-profile').innerHTML = formatUserProfile(globalUserConceptCount, globalClaudeConceptCount);
+                setStatus('profile-status', true);
+                document.getElementById('profile-update-time').textContent = 'Just updated';
+            } else {
+                document.getElementById('user-profile').innerHTML = formatUserProfile(0, 0);
+                setStatus('profile-status', false);
+                document.getElementById('profile-update-time').textContent = 'Loading...';
+            }
+        }
+        
+        // Load recent events
+        async function loadEvents() {
+            try {
+                const response = await fetch('/events' + getWorkspaceParam()); // Uses default: past hour, UserPromptSubmit only
+                if (response.ok) {
+                    const events = await response.json();
+                    const eventStream = document.getElementById('event-stream');
+                    
+                    if (events.length === 0) {
+                        eventStream.innerHTML = '<div class="loading"><div class="loading-text">No conversations in the past hour.<br>Start a Claude session to see activity here.</div></div>';
+                        setStatus('events-status', false);
+                        document.getElementById('events-count').textContent = '0 conversations';
+                        return;
+                    }
+                    
+                    let html = '';
+                    events.forEach(event => {
+                        const prompt = event.data.user_prompt || event.data.prompt || 'No prompt captured';
+                        const truncatedPrompt = prompt.length > 150 ? prompt.substring(0, 150) + '...' : prompt;
+                        
+                        html += `
+                            <div class="event-item">
+                                <div class="event-header">
+                                    <span class="event-type">💬 Conversation</span>
+                                    <span class="event-time">${formatTimestamp(event.timestamp)}</span>
+                                </div>
+                                <div class="event-details conversation-prompt">${truncatedPrompt}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    eventStream.innerHTML = html;
+                    setStatus('events-status', true);
+                    document.getElementById('events-count').textContent = `${events.length} conversations`;
+                } else {
+                    throw new Error('Failed to load events');
+                }
+            } catch (error) {
+                document.getElementById('event-stream').innerHTML = 
+                    '<div class="error"><div class="error-title">Connection Error</div><div class="error-message">Unable to load conversations. Please check your connection.</div></div>';
+                setStatus('events-status', false);
+                document.getElementById('events-count').textContent = 'Error';
+            }
+        }
+        
+        // Load knowledge graph delta
+        async function loadDelta() {
+            try {
+                setStatus('delta-status', true);
+                const response = await fetch('/kb/delta' + getWorkspaceParam());
+                
+                if (response.ok) {
+                    const delta = await response.json();
+                    
+                    // Store counts globally for progress bar
+                    globalUserConceptCount = delta.summary.totalUser;
+                    globalClaudeConceptCount = delta.summary.totalClaude;
+                    
+                    // Update progress bar
+                    loadUserProfile();
+                    
+                    // Update summary
+                    const summaryEl = document.getElementById('delta-summary');
+                    summaryEl.innerHTML = `
+                        <strong>Knowledge Gap Analysis:</strong><br>
+                        • Knowledge gaps to explore: ${delta.summary.claudeOnlyCount} concepts<br>
+                        • Concepts mastered: ${delta.summary.totalUser} / ${delta.summary.totalClaude}
+                    `;
+                    
+                    // Auto-generate Claude recommendations
+                    getClaudeRecommendations(true);
+                    
+                    document.getElementById('delta-update-time').textContent = 'Updated ' + new Date().toLocaleTimeString();
+                    setStatus('delta-status', true);
+                } else {
+                    throw new Error('Failed to load delta');
+                }
+            } catch (error) {
+                console.error('Error loading delta:', error);
+                setStatus('delta-status', false);
+                document.getElementById('delta-summary').innerHTML = 
+                    '<div class="error">Unable to load knowledge gap analysis. Please check your connection.</div>';
+                document.getElementById('delta-update-time').textContent = 'Error';
+            }
+        }
+        
+        // Render a mermaid graph for delta panels
+        async function renderDeltaGraph(containerId, mermaidCode) {
+            const container = document.getElementById(containerId);
+            
+            if (!mermaidCode || mermaidCode.trim() === '') {
+                container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b;">No data to display</div>';
+                return;
+            }
+            
+            // Clear previous content
+            container.innerHTML = '';
+            
+            try {
+                // Create mermaid div
+                const mermaidDiv = document.createElement('div');
+                mermaidDiv.className = 'mermaid';
+                mermaidDiv.textContent = mermaidCode;
+                container.appendChild(mermaidDiv);
+                
+                // Render with mermaid
+                await mermaid.init(undefined, mermaidDiv);
+            } catch (error) {
+                console.error('Error rendering delta mermaid:', error);
+                container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #dc2626;">Error rendering diagram</div>';
+            }
+        }
+        
+        // Initialize delta tab functionality
+        function initializeDeltaTabs() {
+            const tabs = document.querySelectorAll('.delta-tab');
+            const panels = document.querySelectorAll('.delta-panel');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetTab = tab.dataset.tab;
+                    
+                    // Update active tab
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // Update active panel
+                    panels.forEach(p => p.classList.remove('active'));
+                    document.getElementById(targetTab + '-panel').classList.add('active');
+                });
+            });
+        }
+        
+        // Load all data
+        async function loadAll() {
+            await Promise.all([
+                loadClaudeGraph(),
+                loadUserGraph(),
+                loadUserProfile(),
+                loadEvents(),
+                loadDelta()
+            ]);
+        }
+        
+        // Auto-refresh
+        function startAutoRefresh() {
+            setInterval(loadAll, 20000); // Refresh every 20 seconds
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadWorkspaces();
+            initializeDeltaTabs();
+            loadAll();
+            startAutoRefresh();
+        });
+    </script>
+</body>
+</html>

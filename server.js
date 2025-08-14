@@ -109,6 +109,7 @@ app.use((error, req, res, next) => {
 });
 
 app.use(express.static(path.join(ROOT, 'public')));
+app.use('/utils', express.static(path.join(ROOT, 'utils')));
 
 // Main UI endpoint
 app.get('/', (req, res) => {
@@ -441,17 +442,99 @@ app.get('/health', (req, res) => {
 // Initialize knowledge graph converter
 const kgConverter = new KnowledgeGraphToMermaid();
 
-// Mock MCP memory functions (to be replaced with actual MCP integration)
-const mockMCPMemory = {
-  async readGraph() {
-    // This would normally call the MCP memory server
-    // For now, return empty knowledge graph structure
-    return {
-      entities: [],
-      relations: []
-    };
+
+// Generate learning recommendations using Claude CLI
+app.post('/kb/recommendations', async (req, res) => {
+  const { exec } = require('child_process');
+  const { promisify } = require('util');
+  const execAsync = promisify(exec);
+  
+  try {
+    const workspace = req.body.workspace || req.query.workspace;
+    const workspacePath = getWorkspacePath(workspace);
+    
+    // Get the delta analysis
+    const userGraphPath = path.join(workspacePath, 'user_knowledge_graph.mmd');
+    const claudeGraphPath = path.join(workspacePath, 'claude_knowledge_graph.mmd');
+    
+    let userGraph = { entities: [], relations: [] };
+    let claudeGraph = { entities: [], relations: [] };
+    
+    if (fs.existsSync(userGraphPath)) {
+      const userMermaid = fs.readFileSync(userGraphPath, 'utf8');
+      userGraph = parseMermaidToKG(userMermaid, 'user');
+    }
+    
+    if (fs.existsSync(claudeGraphPath)) {
+      const claudeMermaid = fs.readFileSync(claudeGraphPath, 'utf8');
+      claudeGraph = parseMermaidToKG(claudeMermaid, 'claude');
+    }
+    
+    // Create delta analysis
+    const delta = kgConverter.createDelta(userGraph, claudeGraph);
+    
+    // Extract key learning gaps
+    const userEntities = new Set(userGraph.entities?.map(e => e.name) || []);
+    const claudeEntities = new Set(claudeGraph.entities?.map(e => e.name) || []);
+    const knowledgeGaps = Array.from(claudeEntities).filter(name => !userEntities.has(name));
+    
+    // Create a prompt for Claude
+    const prompt = `Based on this knowledge gap analysis for a user learning about ${workspace}:
+
+User has mastered ${userEntities.size} concepts.
+Claude knows ${claudeEntities.size} concepts.
+Knowledge gaps (concepts user hasn't learned yet): ${knowledgeGaps.slice(0, 10).join(', ')}${knowledgeGaps.length > 10 ? `, and ${knowledgeGaps.length - 10} more` : ''}.
+
+Please provide:
+1. A brief summary of what the user should focus on learning next (2-3 sentences)
+2. Top 3 specific concepts to learn next, with a brief explanation of why each is important
+3. Suggested learning path (ordered list of 5 concepts to learn in sequence)
+
+Format your response in markdown with clear sections.`;
+
+    // Write prompt to a temporary file to avoid escaping issues
+    const tempFile = path.join(require('os').tmpdir(), `claude_prompt_${Date.now()}.txt`);
+    fs.writeFileSync(tempFile, prompt);
+    
+    // Call Claude CLI with file input
+    const command = `claude -p "$(cat '${tempFile}')"`;
+    
+    console.log('Calling Claude for learning recommendations...');
+    const { stdout, stderr } = await execAsync(command, {
+      maxBuffer: 1024 * 1024 * 10, // 10MB buffer
+      timeout: 30000 // 30 second timeout
+    });
+    
+    // Clean up temp file
+    try {
+      fs.unlinkSync(tempFile);
+    } catch (e) {
+      // Ignore cleanup errors
+    }
+    
+    if (stderr && !stderr.includes('Warning')) {
+      console.error('Claude CLI stderr:', stderr);
+    }
+    
+    res.json({
+      success: true,
+      recommendations: stdout,
+      delta: delta.summary,
+      knowledgeGaps: knowledgeGaps.slice(0, 20)
+    });
+    
+  } catch (error) {
+    console.error('Error generating recommendations:', error);
+    
+    // Fallback to basic recommendations if Claude CLI fails
+    res.json({
+      success: false,
+      error: error.message,
+      fallbackRecommendations: 'Unable to generate personalized recommendations. Please review the knowledge gap visualization to identify areas for learning.',
+      delta: req.body.delta || {}
+    });
   }
-};
+});
 
 // Knowledge graph delta endpoint
 app.get('/kb/delta', async (req, res) => {
@@ -477,16 +560,6 @@ app.get('/kb/delta', async (req, res) => {
       claudeGraph = parseMermaidToKG(claudeMermaid, 'claude');
     }
     
-    // For now, also try to get from MCP memory (mock)
-    try {
-      const mcpGraph = await mockMCPMemory.readGraph();
-      // Merge MCP graph into claudeGraph
-      if (mcpGraph.entities && mcpGraph.entities.length > 0) {
-        claudeGraph = mcpGraph;
-      }
-    } catch (error) {
-      console.warn('MCP memory not available, using file-based graphs only');
-    }
     
     // Create delta analysis
     const delta = kgConverter.createDelta(userGraph, claudeGraph);
@@ -498,58 +571,67 @@ app.get('/kb/delta', async (req, res) => {
   }
 });
 
-// MCP memory integration endpoint
-app.get('/kb/mcp-graph', async (req, res) => {
-  try {
-    const mcpGraph = await mockMCPMemory.readGraph();
-    const mermaidCode = kgConverter.convertToMermaid(mcpGraph);
-    
-    res.json({
-      graph: mcpGraph,
-      mermaid: mermaidCode,
-      timestamp: Date.now()
-    });
-  } catch (error) {
-    console.error('Error fetching MCP knowledge graph:', error);
-    res.status(500).json({ error: 'Failed to fetch MCP knowledge graph' });
-  }
-});
 
-// Utility function to parse simple Mermaid to knowledge graph structure
+// Improved Mermaid parser for knowledge graphs
 function parseMermaidToKG(mermaidContent, source = 'unknown') {
   const entities = [];
   const relations = [];
+  const nodeIdToName = new Map();
   
   if (!mermaidContent) {
     return { entities, relations };
   }
   
-  // Very basic parsing - extract nodes and edges
-  const lines = mermaidContent.split('\n').filter(line => line.trim() && !line.trim().startsWith('graph'));
+  const lines = mermaidContent.split('\n').filter(line => {
+    const trimmed = line.trim();
+    return trimmed && 
+           !trimmed.startsWith('graph') && 
+           !trimmed.startsWith('%%') && 
+           !trimmed.startsWith('subgraph') && 
+           !trimmed.startsWith('end') &&
+           !trimmed.startsWith('classDef') &&
+           !trimmed.startsWith('class');
+  });
   
   for (const line of lines) {
     const trimmedLine = line.trim();
     
-    // Match node definitions like: A["Entity Name"]
-    const nodeMatch = trimmedLine.match(/(\w+)\["([^"]+)"\]/);
+    // Match various node definitions
+    const nodePatterns = [
+      /(\w+)\[([^\]]+)\]/,  // A[Entity Name]
+      /(\w+)\["([^"]+)"\]/,  // A["Entity Name"] 
+      /(\w+)\[\"([^\"]+)\"\]/, // A["Entity Name"] with escaped quotes
+      /(\w+)\("([^"]+)"\)/   // A("Entity Name")
+    ];
+    
+    let nodeMatch = null;
+    for (const pattern of nodePatterns) {
+      nodeMatch = trimmedLine.match(pattern);
+      if (nodeMatch) break;
+    }
+    
     if (nodeMatch) {
       const [, nodeId, entityName] = nodeMatch;
+      const cleanName = entityName.replace(/^["']|["']$/g, ''); // Remove quotes
+      nodeIdToName.set(nodeId, cleanName);
       entities.push({
-        name: entityName,
+        name: cleanName,
         entityType: source,
         observations: []
       });
       continue;
     }
     
-    // Match edge definitions like: A --> B or A -->|"relation"| B
+    // Match edge definitions: A --> B or A -->|"relation"| B
     const edgeMatch = trimmedLine.match(/(\w+)\s*-->(?:\|"([^"]+)"\|)?\s*(\w+)/);
     if (edgeMatch) {
       const [, fromId, relationLabel, toId] = edgeMatch;
-      // Note: In real implementation, you'd need to map nodeIds back to entity names
+      const fromName = nodeIdToName.get(fromId) || fromId;
+      const toName = nodeIdToName.get(toId) || toId;
+      
       relations.push({
-        from: fromId,
-        to: toId,
+        from: fromName,
+        to: toName,
         relationType: relationLabel || 'connected_to'
       });
     }
