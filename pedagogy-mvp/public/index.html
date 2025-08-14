@@ -90,6 +90,44 @@
             min-height: 200px;
             background: #fafafa;
             border-radius: 4px;
+            overflow: auto;
+            max-height: 400px;
+        }
+        
+        /* Mermaid diagrams should scale properly */
+        .mermaid svg {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Error display improvements */
+        .error {
+            color: #dc2626;
+            text-align: center;
+            padding: 2rem;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 4px;
+        }
+        
+        .error details {
+            margin-top: 1rem;
+            text-align: left;
+        }
+        
+        .error summary {
+            cursor: pointer;
+            color: #374151;
+            font-weight: 500;
+        }
+        
+        .error pre {
+            background: #f3f4f6;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            overflow-x: auto;
+            margin-top: 0.5rem;
         }
         
         /* User Profile */
@@ -296,10 +334,39 @@
                 const response = await fetch('/kb/claude-graph');
                 if (response.ok) {
                     const mermaidCode = await response.text();
-                    document.getElementById('claude-graph').innerHTML = mermaidCode;
-                    await mermaid.run();
-                    setStatus('claude-status', true);
-                    document.getElementById('claude-update-time').textContent = 'Just updated';
+                    
+                    // Validate and render Mermaid
+                    const claudeGraphElement = document.getElementById('claude-graph');
+                    try {
+                        // Clear any existing content
+                        claudeGraphElement.innerHTML = '';
+                        
+                        // Create a properly formatted div for Mermaid
+                        const mermaidDiv = document.createElement('div');
+                        mermaidDiv.className = 'mermaid';
+                        mermaidDiv.textContent = mermaidCode.trim();
+                        claudeGraphElement.appendChild(mermaidDiv);
+                        
+                        // Render with error handling
+                        await mermaid.run({
+                            querySelector: '#claude-graph .mermaid'
+                        });
+                        
+                        setStatus('claude-status', true);
+                        document.getElementById('claude-update-time').textContent = 'Just updated';
+                    } catch (mermaidError) {
+                        console.error('Mermaid rendering error:', mermaidError);
+                        claudeGraphElement.innerHTML = `
+                            <div class="error">
+                                <strong>Graph rendering error</strong><br>
+                                <details>
+                                    <summary>Raw graph data</summary>
+                                    <pre>${mermaidCode}</pre>
+                                </details>
+                            </div>
+                        `;
+                        setStatus('claude-status', false);
+                    }
                 } else {
                     throw new Error('Not found');
                 }
@@ -317,10 +384,39 @@
                 const response = await fetch('/kb/user-graph');
                 if (response.ok) {
                     const mermaidCode = await response.text();
-                    document.getElementById('user-graph').innerHTML = mermaidCode;
-                    await mermaid.run();
-                    setStatus('user-status', true);
-                    document.getElementById('user-update-time').textContent = 'Just updated';
+                    
+                    // Validate and render Mermaid
+                    const userGraphElement = document.getElementById('user-graph');
+                    try {
+                        // Clear any existing content
+                        userGraphElement.innerHTML = '';
+                        
+                        // Create a properly formatted div for Mermaid
+                        const mermaidDiv = document.createElement('div');
+                        mermaidDiv.className = 'mermaid';
+                        mermaidDiv.textContent = mermaidCode.trim();
+                        userGraphElement.appendChild(mermaidDiv);
+                        
+                        // Render with error handling
+                        await mermaid.run({
+                            querySelector: '#user-graph .mermaid'
+                        });
+                        
+                        setStatus('user-status', true);
+                        document.getElementById('user-update-time').textContent = 'Just updated';
+                    } catch (mermaidError) {
+                        console.error('User graph Mermaid rendering error:', mermaidError);
+                        userGraphElement.innerHTML = `
+                            <div class="error">
+                                <strong>Graph rendering error</strong><br>
+                                <details>
+                                    <summary>Raw graph data</summary>
+                                    <pre>${mermaidCode}</pre>
+                                </details>
+                            </div>
+                        `;
+                        setStatus('user-status', false);
+                    }
                 } else {
                     throw new Error('Not found');
                 }

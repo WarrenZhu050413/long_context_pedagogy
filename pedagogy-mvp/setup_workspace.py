@@ -8,6 +8,7 @@ import os
 import shutil
 import json
 import argparse
+import subprocess
 from pathlib import Path
 
 # Get the directory containing this script for template access
@@ -260,15 +261,59 @@ def main():
                 print(f"    Error: {stderr}")
             return 1
         
+        # Automatically trigger research if topic is provided
+        if args.topic:
+            print(f"\n🚀 Automatically starting research for '{args.topic}'...")
+            try:
+                
+                # Change to workspace directory and run Claude
+                study_prompt = f"/study::init {args.topic}"
+                claude_cmd = [
+                    'claude', 
+                    '-p', study_prompt,
+                    '--dangerously-skip-permissions'
+                ]
+                
+                print(f"  Running: {' '.join(claude_cmd)}")
+                print(f"  In directory: {workspace_path.absolute()}")
+                
+                result = subprocess.run(
+                    claude_cmd,
+                    cwd=workspace_path,
+                    capture_output=True,
+                    text=True,
+                    timeout=300  # 5 minute timeout
+                )
+                
+                if result.returncode == 0:
+                    print("  ✓ Research initialization successful!")
+                    print("  📊 Check http://localhost:3001 to monitor progress")
+                else:
+                    print("  ⚠️ Claude research had issues:")
+                    if result.stderr:
+                        print(f"    {result.stderr}")
+                    print("  You can manually run the research later:")
+                    print(f"    cd {args.directory}")
+                    print(f"    claude -p '/study::init {args.topic}'")
+                    
+            except subprocess.TimeoutExpired:
+                print("  ⏱️ Research is taking longer than expected.")
+                print("  This is normal for comprehensive topics.")
+                print("  Check http://localhost:3001 to monitor progress")
+            except Exception as e:
+                print(f"  ⚠️ Could not auto-start research: {e}")
+                print("  You can manually start research:")
+                print(f"    cd {args.directory}")
+                print(f"    claude -p '/study::init {args.topic}'")
+        
         # Success message
         print(f"\n" + "="*60)
         print(f"🎓 Pedagogy workspace ready!")
         print(f"="*60)
-        print(f"\nTo start learning:")
-        print(f"  cd {args.directory}")
-        if args.topic:
-            print(f"  claude -p 'Let's learn about {args.topic}'")
-        else:
+        
+        if not args.topic:
+            print(f"\nTo start learning:")
+            print(f"  cd {args.directory}")
             print(f"  claude -p '/study::init your-topic-here'")
         
         print(f"\nTo monitor progress:")

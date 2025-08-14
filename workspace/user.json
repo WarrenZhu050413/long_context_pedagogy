@@ -1,0 +1,13 @@
+{
+  "id": "default_user",
+  "name": "Learner",
+  "learningStyle": {
+    "preferredDifficulty": "medium",
+    "pacePreference": "moderate",
+    "detailLevel": "balanced"
+  },
+  "preferences": {
+    "reminderFrequency": "adaptive",
+    "sessionDuration": 30
+  }
+}

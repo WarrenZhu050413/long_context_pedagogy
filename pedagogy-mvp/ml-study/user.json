@@ -1,0 +1,26 @@
+{
+  "name": "",
+  "learning_goals": [
+    "ml basic"
+  ],
+  "current_topic": "ml basic",
+  "knowledge_level": "high",
+  "learning_style": "visual",
+  "progress": {
+    "concepts_learned": [
+      "What is Machine Learning?",
+      "Data and Datasets", 
+      "Linear Regression",
+      "Classification vs Regression",
+      "Model Training and Evaluation"
+    ],
+    "concepts_in_progress": [],
+    "last_session": "2025-08-14",
+    "total_sessions": 1
+  },
+  "preferences": {
+    "detail_level": "moderate",
+    "pace": "adaptive",
+    "examples": true
+  }
+}

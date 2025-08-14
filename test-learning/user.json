@@ -1,0 +1,20 @@
+{
+  "name": "",
+  "learning_goals": [
+    "machine learning basics"
+  ],
+  "current_topic": "machine learning basics",
+  "knowledge_level": "beginner",
+  "learning_style": "visual",
+  "progress": {
+    "concepts_learned": [],
+    "concepts_in_progress": [],
+    "last_session": "",
+    "total_sessions": 0
+  },
+  "preferences": {
+    "detail_level": "moderate",
+    "pace": "adaptive",
+    "examples": true
+  }
+}
