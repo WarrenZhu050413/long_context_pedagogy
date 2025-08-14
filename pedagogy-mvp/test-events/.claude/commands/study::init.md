@@ -2,29 +2,23 @@ Multi-Agent Research and Teaching: $ARGUMENTS
 
 You are the **Research Lead** in a comprehensive pedagogy system. Your role is to orchestrate multi-agent research on "$ARGUMENTS" and then guide personalized learning based on knowledge gap analysis.
 
-## Phase 1: Comprehensive Research & Documentation
+## Phase 1: Multi-Agent Research Orchestration
 
-Conduct thorough research on "$ARGUMENTS" and write all findings directly to the ./kb directory:
+Launch a comprehensive research effort using the multi-agent research pattern:
 
-1. **Research Structure**: Create organized documentation in ./kb/:
-   - `fundamentals.md` - Core concepts and basic principles
-   - `advanced.md` - Cutting-edge developments and expert topics  
-   - `applications.md` - Real-world use cases and practical examples
-   - `prerequisites.md` - Required background knowledge and learning paths
-   - `synthesis.md` - Integrated overview connecting all research areas
+1. **Spawn Research Teams** using Task tool:
+   ```
+   async("Research fundamentals and basic concepts of $ARGUMENTS using fundamentals_researcher template")
+   async("Research advanced topics and cutting-edge developments in $ARGUMENTS using advanced_researcher template") 
+   async("Research real-world applications and practical examples of $ARGUMENTS using applications_researcher template")
+   async("Research prerequisites and learning pathways for $ARGUMENTS using prerequisites_researcher template")
+   ```
 
-2. **Research Process**:
-   - **Fundamentals Research**: Write comprehensive fundamentals to `./kb/fundamentals.md`
-   - **Advanced Research**: Document cutting-edge topics in `./kb/advanced.md`
-   - **Applications Research**: Capture real-world examples in `./kb/applications.md`
-   - **Prerequisites Research**: Map learning pathways in `./kb/prerequisites.md`
-   - **Synthesis**: Create unified overview in `./kb/synthesis.md`
-
-3. **Quality Standards**:
-   - Ensure comprehensive coverage of the topic domain
-   - Include concrete examples and practical applications
-   - Structure content pedagogically from basic to advanced
-   - Cross-reference related concepts between files
+2. **Research Coordination**:
+   - Monitor all research agents to ensure comprehensive coverage
+   - Identify gaps and overlaps between research domains
+   - Ensure research quality and pedagogical soundness
+   - Coordinate synthesis of results
 
 ## Phase 2: Knowledge Graph Synthesis
 
@@ -64,16 +58,12 @@ After research completion, build comprehensive `claude_knowledge_graph.mmd`:
 ## Phase 3: Knowledge Gap Analysis & Personalized Teaching
 
 1. **Comprehensive Gap Analysis**:
-   - Compare your complete knowledge (claude_knowledge_graph.mmd) with user's current understanding (user_knowledge_graph.mmd)
-   - Identify specific knowledge gaps and missing concepts
-   - Write detailed gap analysis to `./kb/gap_analysis.md` including:
-     - What the user already knows
-     - What concepts are missing
-     - Which concepts should be learned next
-     - Prerequisites for each recommended concept
+   ```
+   async("Perform knowledge gap analysis comparing claude_knowledge_graph.mmd with user_knowledge_graph.mmd using gap_analysis template")
+   ```
    
-   After gap analysis:
-   - Review the detailed analysis in ./kb/gap_analysis.md
+   After gap analysis completion:
+   - Review the detailed gap analysis report
    - Identify the single most important concept for user to learn next
    - Verify user has necessary prerequisites for that concept
    - Design optimal teaching approach for user's learning style
@@ -103,14 +93,9 @@ After research completion, build comprehensive `claude_knowledge_graph.mmd`:
 ## Files You Work With
 
 - `claude_knowledge_graph.mmd` - Your complete knowledge of the topic
-- `user_knowledge_graph.mmd` - User's current understanding  
+- `user_knowledge_graph.mmd` - User's current understanding
 - `user.json` - User profile and learning progress
-- `./kb/fundamentals.md` - Core concepts and basic principles
-- `./kb/advanced.md` - Cutting-edge developments and expert topics
-- `./kb/applications.md` - Real-world use cases and examples
-- `./kb/prerequisites.md` - Required background and learning paths
-- `./kb/synthesis.md` - Integrated overview of all research
-- `./kb/gap_analysis.md` - Detailed knowledge gap analysis
+- `./kb/` - Supporting research materials and documentation
 
 ## Remember
 

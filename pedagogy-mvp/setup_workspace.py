@@ -86,18 +86,32 @@ def create_knowledge_files(workspace_path, topic=None):
     # Create claude_knowledge_graph.mmd
     if topic:
         claude_graph_content = f"""graph TD
-    Start["Learning Topic: {topic}"]
-    Start --> Research["Research phase needed"]
-    Research --> Concepts["Extract key concepts"]
-    Concepts --> Structure["Build knowledge structure"]
-    Structure --> Teach["Ready to teach"]
+    subgraph "Core Knowledge"
+        Topic["{topic}"]
+        Topic --> Concepts["Key Concepts"]
+        Concepts --> Advanced["Advanced Topics"] 
+        Advanced --> Applications["Real-world Applications"]
+    end
     
-    %% This will be expanded during research phase
+    subgraph "Learning Path"
+        Prerequisites["Prerequisites"]
+        Prerequisites --> Topic
+        Topic --> Practice["Hands-on Practice"]
+        Practice --> Mastery["Subject Mastery"]
+    end
+    
+    %% Knowledge structure will be built during research
+    %% Focus: Domain concepts and relationships, not workflow
 """
     else:
         claude_graph_content = """graph TD
-    Ready["Ready to research and learn about your topic"]
-    Ready --> Topic["Specify learning topic with /study::init 'topic name'"]
+    Knowledge["Comprehensive Knowledge Base"]
+    Knowledge --> Core["Core Concepts"]
+    Knowledge --> Advanced["Advanced Topics"] 
+    Knowledge --> Applications["Applications"]
+    
+    %% Will be populated with actual domain knowledge
+    %% Focus: What to learn, not how to learn it
 """
     
     claude_graph_path = workspace_path / 'claude_knowledge_graph.mmd'
@@ -105,12 +119,31 @@ def create_knowledge_files(workspace_path, topic=None):
     created_files.append(f"Claude knowledge: {claude_graph_path.relative_to(workspace_path)}")
     
     # Create user_knowledge_graph.mmd
-    user_graph_content = """graph TD
-    User["User starting learning journey"]
-    User --> Goals["Define learning goals"]
-    Goals --> Begin["Begin with fundamentals"]
+    if topic:
+        user_graph_content = f"""graph TD
+    subgraph "Current Knowledge"
+        Known["What I Know"]
+        Known --> Basics["Basic Understanding"]
+    end
     
-    %% User's knowledge will be tracked here
+    subgraph "Learning Progress"
+        Basics --> Learning["{topic} Concepts"]
+        Learning --> Practicing["Applied Skills"]
+        Practicing --> Confident["Confident Understanding"]
+    end
+    
+    %% This tracks actual knowledge mastery
+    %% Updated as user demonstrates understanding
+"""
+    else:
+        user_graph_content = """graph TD
+    CurrentKnowledge["My Current Knowledge"]
+    CurrentKnowledge --> Foundations["Strong Foundations"]
+    CurrentKnowledge --> Learning["Currently Learning"]
+    Learning --> NewSkills["New Skills Acquired"]
+    
+    %% Tracks user's actual knowledge and understanding
+    %% Not learning intentions or workflow states
 """
     user_graph_path = workspace_path / 'user_knowledge_graph.mmd'
     user_graph_path.write_text(user_graph_content)
@@ -133,6 +166,21 @@ def create_knowledge_files(workspace_path, topic=None):
             "detail_level": "moderate",
             "pace": "adaptive",
             "examples": True
+        },
+        "workflow_state": {
+            "current_phase": "setup" if not topic else "ready_for_research",
+            "next_action": "Start research" if topic else "Define learning topic",
+            "research_status": "pending" if topic else "not_started",
+            "teaching_status": "not_started",
+            "last_activity": "workspace_created",
+            "session_goals": []
+        },
+        "learning_journey": {
+            "started_at": "",
+            "milestones": [],
+            "challenges_faced": [],
+            "breakthroughs": [],
+            "reflection_notes": []
         }
     }
     
@@ -264,8 +312,12 @@ def main():
         # Automatically trigger research if topic is provided
         if args.topic:
             print(f"\n🚀 Automatically starting research for '{args.topic}'...")
+            print(f"⏱️  IMPORTANT: Comprehensive research takes 20-30 minutes to complete")
+            print(f"⏱️  This includes multi-agent analysis and knowledge graph synthesis")
+            print(f"⏱️  The process will run until completion - please be patient!")
+            print(f"📊 Monitor progress at: http://localhost:3001")
+            
             try:
-                
                 # Change to workspace directory and run Claude
                 study_prompt = f"/study::init {args.topic}"
                 claude_cmd = [
@@ -274,37 +326,38 @@ def main():
                     '--dangerously-skip-permissions'
                 ]
                 
-                print(f"  Running: {' '.join(claude_cmd)}")
+                print(f"\n  Running: {' '.join(claude_cmd)}")
                 print(f"  In directory: {workspace_path.absolute()}")
+                print(f"  Starting comprehensive research... (this will take 20-30 minutes)")
                 
+                # Run without timeout to allow full research completion
                 result = subprocess.run(
                     claude_cmd,
                     cwd=workspace_path,
                     capture_output=True,
-                    text=True,
-                    timeout=300  # 5 minute timeout
+                    text=True
+                    # No timeout - let research complete naturally
                 )
                 
                 if result.returncode == 0:
-                    print("  ✓ Research initialization successful!")
-                    print("  📊 Check http://localhost:3001 to monitor progress")
+                    print("  ✅ Comprehensive research completed successfully!")
+                    print("  📊 View results at: http://localhost:3001")
+                    print("  🎓 Knowledge graphs have been populated with research findings")
                 else:
-                    print("  ⚠️ Claude research had issues:")
+                    print("  ⚠️ Research completed with issues:")
                     if result.stderr:
                         print(f"    {result.stderr}")
-                    print("  You can manually run the research later:")
+                    print("  📊 Check http://localhost:3001 for partial results")
+                    print("  You can re-run research manually:")
                     print(f"    cd {args.directory}")
                     print(f"    claude -p '/study::init {args.topic}'")
                     
-            except subprocess.TimeoutExpired:
-                print("  ⏱️ Research is taking longer than expected.")
-                print("  This is normal for comprehensive topics.")
-                print("  Check http://localhost:3001 to monitor progress")
             except Exception as e:
-                print(f"  ⚠️ Could not auto-start research: {e}")
+                print(f"  ⚠️ Could not start research: {e}")
                 print("  You can manually start research:")
                 print(f"    cd {args.directory}")
                 print(f"    claude -p '/study::init {args.topic}'")
+                print(f"  Expected duration: 20-30 minutes for comprehensive research")
         
         # Success message
         print(f"\n" + "="*60)

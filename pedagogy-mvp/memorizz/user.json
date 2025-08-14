@@ -1,0 +1,33 @@
+{
+  "name": "",
+  "learning_goals": [],
+  "current_topic": "",
+  "knowledge_level": "intermediate",
+  "learning_style": "visual",
+  "progress": {
+    "concepts_learned": ["cognitive_memory_types", "vector_embeddings", "memory_orchestration", "working_memory_coordination", "memagent_architecture", "tool_integration", "procedural_memory_tools", "memory_provider_abstraction"],
+    "concepts_in_progress": [],
+    "last_session": "",
+    "total_sessions": 0
+  },
+  "preferences": {
+    "detail_level": "moderate",
+    "pace": "adaptive",
+    "examples": true
+  },
+  "workflow_state": {
+    "current_phase": "setup",
+    "next_action": "Define learning topic",
+    "research_status": "not_started",
+    "teaching_status": "not_started",
+    "last_activity": "workspace_created",
+    "session_goals": []
+  },
+  "learning_journey": {
+    "started_at": "",
+    "milestones": [],
+    "challenges_faced": [],
+    "breakthroughs": [],
+    "reflection_notes": []
+  }
+}

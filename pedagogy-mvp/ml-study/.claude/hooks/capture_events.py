@@ -91,11 +91,17 @@ def main():
         event_type = determine_event_type(parsed_input)
         session_id = parsed_input.get('session_id', 'unknown')
         
+        # Determine workspace context
+        current_dir = Path.cwd()
+        workspace_name = current_dir.name if current_dir.name != 'long_context_pedagogy' else None
+        
         # Build event data
         event_data = {
             'session_id': session_id,
             'event_type': event_type,
             'timestamp': int(datetime.now().timestamp() * 1000),
+            'workspace': workspace_name,
+            'working_directory': str(current_dir),
             'stdin_data': parsed_input,
             'raw_stdin': stdin_data,
         }

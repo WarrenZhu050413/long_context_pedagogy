@@ -1,0 +1,35 @@
+{
+  "name": "",
+  "learning_goals": [
+    "workspace testing"
+  ],
+  "current_topic": "workspace testing",
+  "knowledge_level": "beginner",
+  "learning_style": "visual",
+  "progress": {
+    "concepts_learned": [],
+    "concepts_in_progress": [],
+    "last_session": "",
+    "total_sessions": 0
+  },
+  "preferences": {
+    "detail_level": "moderate",
+    "pace": "adaptive",
+    "examples": true
+  },
+  "workflow_state": {
+    "current_phase": "ready_for_research",
+    "next_action": "Start research",
+    "research_status": "pending",
+    "teaching_status": "not_started",
+    "last_activity": "workspace_created",
+    "session_goals": []
+  },
+  "learning_journey": {
+    "started_at": "",
+    "milestones": [],
+    "challenges_faced": [],
+    "breakthroughs": [],
+    "reflection_notes": []
+  }
+}
