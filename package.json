@@ -1,7 +1,7 @@
 {
   "name": "long_context_pedagogy",
   "version": "1.0.0",
-  "description": "Long context pedagogy learning system with Claude Code",
+  "description": "Long context Graph My Mind with Claude Code",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

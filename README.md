@@ -1,6 +1,6 @@
 # Pedagogy MVP - Learning System with Claude Code
 
-A minimal, clean implementation of a pedagogy learning system that integrates with Claude Code to track learning progress through knowledge graphs.
+A minimal, clean implementation of a Graph My Mind that integrates with Claude Code to track learning progress through knowledge graphs.
 
 ## Features
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Clean, modular workspace setup for pedagogy learning system.
+Clean, modular workspace setup for Graph My Mind.
 Creates a workspace with event capture hooks and knowledge tracking files.
 """
 
