@@ -492,25 +492,17 @@ Please provide:
 
 Format your response in markdown with clear sections.`;
 
-    // Write prompt to a temporary file to avoid escaping issues
-    const tempFile = path.join(require('os').tmpdir(), `claude_prompt_${Date.now()}.txt`);
-    fs.writeFileSync(tempFile, prompt);
-    
-    // Call Claude CLI with file input
-    const command = `claude -p "$(cat '${tempFile}')"`;
+    // Use echo pipe method - most reliable based on testing
+    // Escape single quotes for shell
+    const escapedPrompt = prompt.replace(/'/g, "'\\''");
+    const command = `echo '${escapedPrompt}' | claude -p -`;
     
     console.log('Calling Claude for learning recommendations...');
     const { stdout, stderr } = await execAsync(command, {
       maxBuffer: 1024 * 1024 * 10, // 10MB buffer
-      timeout: 30000 // 30 second timeout
+      timeout: 30000, // 30 second timeout
+      shell: '/bin/bash' // Ensure bash is used
     });
-    
-    // Clean up temp file
-    try {
-      fs.unlinkSync(tempFile);
-    } catch (e) {
-      // Ignore cleanup errors
-    }
     
     if (stderr && !stderr.includes('Warning')) {
       console.error('Claude CLI stderr:', stderr);

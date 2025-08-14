@@ -1,0 +1,24 @@
+{
+  "name": "long_context_pedagogy",
+  "version": "1.0.0",
+  "description": "Minimal viable product for pedagogy learning system with Claude Code",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "setup": "python3 setup_workspace.py",
+    "test": "npm run test:playwright",
+    "test:playwright": "npx playwright test"
+  },
+  "keywords": ["pedagogy", "learning", "claude", "knowledge-graph"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "better-sqlite3": "^9.2.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}

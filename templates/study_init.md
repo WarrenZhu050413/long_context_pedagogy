@@ -54,6 +54,10 @@ After research completion, build comprehensive `claude_knowledge_graph.mmd`:
    ```
 
 2. **Knowledge Graph Requirements**:
+   - **STRUCTURED & TREE-LIKE**: Create hierarchical, tree-structured graphs that are easy to parse
+   - **PARSEABLE FORMAT**: Use consistent Mermaid syntax for reliable parsing
+   - **CLEAR HIERARCHY**: Organize from foundational to advanced concepts in clear levels
+   - **PROPER NODE NAMING**: Use descriptive, unique node identifiers without special characters
    - **KNOWLEDGE ONLY**: Include domain concepts, theories, principles, and relationships
    - **NO WORKFLOW**: Exclude learning actions ("research needed", "begin with", etc.)
    - **CONCEPT DEPENDENCIES**: Show how concepts build upon each other

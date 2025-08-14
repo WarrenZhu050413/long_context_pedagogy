@@ -45,71 +45,121 @@ class MermaidToAscii {
         this.nodes.clear();
         this.edges = [];
         this.roots.clear();
+        this.subgraphs = new Map();
 
         const lines = mermaidCode.split('\n');
+        let currentSubgraph = null;
         
         for (const line of lines) {
             const trimmed = line.trim();
             
-            // Skip empty lines, comments, and directives
+            // Skip empty lines, comments, and certain directives
             if (!trimmed || trimmed.startsWith('%%') || 
-                trimmed.startsWith('graph') || trimmed.startsWith('subgraph') || 
-                trimmed.startsWith('end') || trimmed.startsWith('classDef') || 
-                trimmed.startsWith('class') || trimmed.startsWith('style')) {
+                trimmed.startsWith('graph TD') || trimmed.startsWith('graph LR') ||
+                trimmed.startsWith('classDef') || trimmed.startsWith('class')) {
                 continue;
             }
-
-            // Parse node definitions: A["Node Label"]
-            const nodeMatch = trimmed.match(/(\w+)\[["']?([^"'\]]+)["']?\]/);
-            if (nodeMatch) {
-                const [, nodeId, label] = nodeMatch;
-                this.nodes.set(nodeId, {
-                    id: nodeId,
-                    label: label.replace(/\\"/g, '"'),
-                    children: new Set(),
-                    parents: new Set(),
-                    level: -1
-                });
-                continue;
-            }
-
-            // Parse edge definitions: A --> B or A -->|"label"| B
-            const edgeMatch = trimmed.match(/(\w+)\s*-->(?:\|["']?([^"'|]+)["']?\|)?\s*(\w+)/);
-            if (edgeMatch) {
-                const [, from, edgeLabel, to] = edgeMatch;
-                
-                // Ensure nodes exist
-                if (!this.nodes.has(from)) {
-                    this.nodes.set(from, {
-                        id: from,
-                        label: from,
-                        children: new Set(),
-                        parents: new Set(),
-                        level: -1
-                    });
+            
+            // Handle subgraph start
+            if (trimmed.startsWith('subgraph')) {
+                const subgraphMatch = trimmed.match(/subgraph\s+"?([^"]+)"?/);
+                if (subgraphMatch) {
+                    currentSubgraph = subgraphMatch[1];
+                    this.subgraphs.set(currentSubgraph, new Set());
                 }
-                if (!this.nodes.has(to)) {
-                    this.nodes.set(to, {
-                        id: to,
-                        label: to,
+                continue;
+            }
+            
+            // Handle subgraph end
+            if (trimmed === 'end') {
+                currentSubgraph = null;
+                continue;
+            }
+            
+            // Skip style definitions
+            if (trimmed.startsWith('style')) {
+                continue;
+            }
+
+            // First, try to parse standalone node definitions: A["Node Label"] or A[Node Label]
+            const standaloneNodeMatch = trimmed.match(/^(\w+)\[["']?([^"'\]]+)["']?\]$/);
+            if (standaloneNodeMatch) {
+                const [, nodeId, label] = standaloneNodeMatch;
+                if (!this.nodes.has(nodeId)) {
+                    this.nodes.set(nodeId, {
+                        id: nodeId,
+                        label: label.replace(/\\"/g, '"'),
                         children: new Set(),
                         parents: new Set(),
-                        level: -1
+                        level: -1,
+                        subgraph: currentSubgraph
                     });
+                    if (currentSubgraph) {
+                        this.subgraphs.get(currentSubgraph).add(nodeId);
+                    }
+                }
+                continue;
+            }
+
+            // Parse edge definitions with possible inline node definitions
+            // This regex now handles: A --> B[Label], A[Label] --> B, etc.
+            const edgeRegex = /(\w+)(?:\[["']?([^"'\]]+)["']?\])?\s*-->(?:\|["']?([^"'|]+)["']?\|)?\s*(\w+)(?:\[["']?([^"'\]]+)["']?\])?/;
+            const edgeMatch = trimmed.match(edgeRegex);
+            
+            if (edgeMatch) {
+                const [, fromId, fromLabel, edgeLabel, toId, toLabel] = edgeMatch;
+                
+                // Create or update 'from' node
+                if (!this.nodes.has(fromId)) {
+                    this.nodes.set(fromId, {
+                        id: fromId,
+                        label: fromLabel || fromId,
+                        children: new Set(),
+                        parents: new Set(),
+                        level: -1,
+                        subgraph: currentSubgraph
+                    });
+                    if (currentSubgraph) {
+                        this.subgraphs.get(currentSubgraph).add(fromId);
+                    }
+                } else if (fromLabel && this.nodes.get(fromId).label === fromId) {
+                    // Update label if it was just the ID before
+                    this.nodes.get(fromId).label = fromLabel;
+                }
+                
+                // Create or update 'to' node
+                if (!this.nodes.has(toId)) {
+                    this.nodes.set(toId, {
+                        id: toId,
+                        label: toLabel || toId,
+                        children: new Set(),
+                        parents: new Set(),
+                        level: -1,
+                        subgraph: currentSubgraph
+                    });
+                    if (currentSubgraph) {
+                        this.subgraphs.get(currentSubgraph).add(toId);
+                    }
+                } else if (toLabel && this.nodes.get(toId).label === toId) {
+                    // Update label if it was just the ID before
+                    this.nodes.get(toId).label = toLabel;
                 }
                 
                 // Add edge
                 this.edges.push({
-                    from,
-                    to,
+                    from: fromId,
+                    to: toId,
                     label: edgeLabel || ''
                 });
                 
                 // Update parent-child relationships
-                this.nodes.get(from).children.add(to);
-                this.nodes.get(to).parents.add(from);
+                this.nodes.get(fromId).children.add(toId);
+                this.nodes.get(toId).parents.add(fromId);
             }
         }
+        
+        // Assign levels using BFS from roots
+        this.assignLevels();
     }
 
     /**
@@ -119,7 +169,6 @@ class MermaidToAscii {
         for (const [nodeId, node] of this.nodes) {
             if (node.parents.size === 0) {
                 this.roots.add(nodeId);
-                node.level = 0;
             }
         }
         
@@ -137,7 +186,42 @@ class MermaidToAscii {
             
             if (bestRoot) {
                 this.roots.add(bestRoot);
-                this.nodes.get(bestRoot).level = 0;
+            }
+        }
+    }
+    
+    /**
+     * Assign levels to nodes using BFS
+     */
+    assignLevels() {
+        // First find roots
+        this.findRoots();
+        
+        // BFS to assign levels
+        const queue = [];
+        const visited = new Set();
+        
+        // Start with all root nodes at level 0
+        for (const rootId of this.roots) {
+            queue.push({ id: rootId, level: 0 });
+            visited.add(rootId);
+        }
+        
+        while (queue.length > 0) {
+            const { id, level } = queue.shift();
+            const node = this.nodes.get(id);
+            
+            // Assign level (use minimum level if already assigned)
+            if (node.level === -1 || node.level > level) {
+                node.level = level;
+            }
+            
+            // Add children to queue
+            for (const childId of node.children) {
+                if (!visited.has(childId)) {
+                    visited.add(childId);
+                    queue.push({ id: childId, level: level + 1 });
+                }
             }
         }
     }
@@ -157,17 +241,46 @@ class MermaidToAscii {
         let result = [];
         const visited = new Set();
         
-        // Process each root
-        for (const rootId of this.roots) {
-            this.buildSubtree(rootId, '', true, visited, result, maxWidth, showRelations, compactMode);
+        // Add title if we have subgraphs
+        if (this.subgraphs && this.subgraphs.size > 0 && !compactMode) {
+            result.push('Knowledge Graph Structure');
+            result.push('=' .repeat(Math.min(50, maxWidth)));
+            result.push('');
+        }
+        
+        // Process root nodes
+        const sortedRoots = Array.from(this.roots).sort((a, b) => {
+            const nodeA = this.nodes.get(a);
+            const nodeB = this.nodes.get(b);
+            // Sort by number of descendants (larger trees first)
+            return nodeB.children.size - nodeA.children.size;
+        });
+        
+        for (let i = 0; i < sortedRoots.length; i++) {
+            const rootId = sortedRoots[i];
+            const isLastRoot = i === sortedRoots.length - 1;
+            
+            // Add spacing between major trees
+            if (i > 0 && !compactMode) {
+                result.push('');
+            }
+            
+            this.buildSubtree(rootId, '', isLastRoot, visited, result, maxWidth, showRelations, compactMode);
         }
         
         // Add any unvisited nodes (disconnected components)
+        const unvisited = [];
         for (const [nodeId, node] of this.nodes) {
             if (!visited.has(nodeId)) {
-                result.push('');
-                result.push('(Disconnected):');
-                this.buildSubtree(nodeId, '', true, visited, result, maxWidth, showRelations, compactMode);
+                unvisited.push(nodeId);
+            }
+        }
+        
+        if (unvisited.length > 0) {
+            result.push('');
+            result.push('─── Disconnected Nodes ───');
+            for (const nodeId of unvisited) {
+                this.buildSubtree(nodeId, '  ', true, visited, result, maxWidth, showRelations, compactMode);
             }
         }
         

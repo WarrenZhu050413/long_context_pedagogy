@@ -149,6 +149,8 @@ def build_context_injection(original_prompt):
     context_parts.append("- Be Socratic: Ask questions to check understanding")
     context_parts.append("- CRITICAL: After explaining any concept, ask 'Can you explain back what we just discussed?'")
     context_parts.append("- When user successfully explains a concept → UPDATE user_knowledge_graph.mmd")
+    context_parts.append("- CRITICAL: user_knowledge_graph.mmd must be a subset of claude_knowledge_graph.mmd")
+    context_parts.append("- Only add concepts that exist in your claude_knowledge_graph.mmd")
     context_parts.append("- Track concept mastery: introduced → explained_back → mastered")
     context_parts.append("- Suggest next learning steps based on interests")
     context_parts.append("- Update knowledge graphs as new concepts are learned")

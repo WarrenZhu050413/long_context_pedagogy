@@ -969,7 +969,7 @@
             }
         }
         
-        function formatUserProfile(userConceptCount, claudeConceptCount) {
+        function formatUserProfile(userConceptCount, claudeConceptCount, conversationCount = 0) {
             const percentage = claudeConceptCount > 0 ? Math.round((userConceptCount / claudeConceptCount) * 100) : 0;
             
             return `
@@ -981,8 +981,9 @@
                     <div style="background: #e2e8f0; border-radius: 8px; height: 24px; overflow: hidden;">
                         <div style="background: linear-gradient(90deg, #3b82f6, #2563eb); height: 100%; width: ${percentage}%; transition: width 0.5s ease;"></div>
                     </div>
-                    <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #64748b; text-align: center;">
-                        ${userConceptCount} of ${claudeConceptCount} concepts mastered
+                    <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.85rem; color: #64748b;">
+                        <span>💬 ${conversationCount} conversations today</span>
+                        <span>${userConceptCount} of ${claudeConceptCount} concepts</span>
                     </div>
                 </div>
             `;
@@ -1489,18 +1490,19 @@
         }
         
         // Load user profile
-        // Store concept counts globally
+        // Store concept counts and conversation count globally
         let globalUserConceptCount = 0;
         let globalClaudeConceptCount = 0;
+        let globalConversationCount = 0;
         
         async function loadUserProfile() {
             // Use the global concept counts from delta analysis
-            if (globalUserConceptCount > 0 || globalClaudeConceptCount > 0) {
-                document.getElementById('user-profile').innerHTML = formatUserProfile(globalUserConceptCount, globalClaudeConceptCount);
+            if (globalUserConceptCount > 0 || globalClaudeConceptCount > 0 || globalConversationCount > 0) {
+                document.getElementById('user-profile').innerHTML = formatUserProfile(globalUserConceptCount, globalClaudeConceptCount, globalConversationCount);
                 setStatus('profile-status', true);
                 document.getElementById('profile-update-time').textContent = 'Just updated';
             } else {
-                document.getElementById('user-profile').innerHTML = formatUserProfile(0, 0);
+                document.getElementById('user-profile').innerHTML = formatUserProfile(0, 0, 0);
                 setStatus('profile-status', false);
                 document.getElementById('profile-update-time').textContent = 'Loading...';
             }
@@ -1509,13 +1511,17 @@
         // Load recent events
         async function loadEvents() {
             try {
-                const response = await fetch('/events' + getWorkspaceParam()); // Uses default: past hour, UserPromptSubmit only
+                // Request past 24 hours of data
+                const dayInMs = 86400000; // 24 hours
+                const params = getWorkspaceParam();
+                const url = '/events' + params + (params ? '&' : '?') + `since=${Date.now() - dayInMs}`;
+                const response = await fetch(url);
                 if (response.ok) {
                     const events = await response.json();
                     const eventStream = document.getElementById('event-stream');
                     
                     if (events.length === 0) {
-                        eventStream.innerHTML = '<div class="loading"><div class="loading-text">No conversations in the past hour.<br>Start a Claude session to see activity here.</div></div>';
+                        eventStream.innerHTML = '<div class="loading"><div class="loading-text">No conversations in the past day.<br>Start a Claude session to see activity here.</div></div>';
                         setStatus('events-status', false);
                         document.getElementById('events-count').textContent = '0 conversations';
                         return;
@@ -1540,6 +1546,10 @@
                     eventStream.innerHTML = html;
                     setStatus('events-status', true);
                     document.getElementById('events-count').textContent = `${events.length} conversations`;
+                    
+                    // Store conversation count globally for profile
+                    globalConversationCount = events.length;
+                    loadUserProfile(); // Update profile with conversation count
                 } else {
                     throw new Error('Failed to load events');
                 }

@@ -86,11 +86,30 @@ def create_knowledge_files(workspace_path, topic=None):
     # Create claude_knowledge_graph.mmd
     if topic:
         claude_graph_content = f"""graph TD
+    subgraph "Core Knowledge"
+        Topic["{topic}"]
+        Topic --> Concepts["Key Concepts"]
+        Concepts --> Advanced["Advanced Topics"] 
+        Advanced --> Applications["Real-world Applications"]
+    end
+    
+    subgraph "Learning Path"
+        Prerequisites["Prerequisites"]
+        Prerequisites --> Topic
+        Topic --> Practice["Hands-on Practice"]
+        Practice --> Mastery["Subject Mastery"]
+    end
+    
     %% Knowledge structure will be built during research
     %% Focus: Domain concepts and relationships, not workflow
 """
     else:
         claude_graph_content = """graph TD
+    Knowledge["Comprehensive Knowledge Base"]
+    Knowledge --> Core["Core Concepts"]
+    Knowledge --> Advanced["Advanced Topics"] 
+    Knowledge --> Applications["Applications"]
+    
     %% Will be populated with actual domain knowledge
     %% Focus: What to learn, not how to learn it
 """
@@ -99,7 +118,30 @@ def create_knowledge_files(workspace_path, topic=None):
     claude_graph_path.write_text(claude_graph_content)
     created_files.append(f"Claude knowledge: {claude_graph_path.relative_to(workspace_path)}")
     
-    user_graph_content = """graph TD
+    # Create user_knowledge_graph.mmd
+    if topic:
+        user_graph_content = f"""graph TD
+    subgraph "Current Knowledge"
+        Known["What I Know"]
+        Known --> Basics["Basic Understanding"]
+    end
+    
+    subgraph "Learning Progress"
+        Basics --> Learning["{topic} Concepts"]
+        Learning --> Practicing["Applied Skills"]
+        Practicing --> Confident["Confident Understanding"]
+    end
+    
+    %% This tracks actual knowledge mastery
+    %% Updated as user demonstrates understanding
+"""
+    else:
+        user_graph_content = """graph TD
+    CurrentKnowledge["My Current Knowledge"]
+    CurrentKnowledge --> Foundations["Strong Foundations"]
+    CurrentKnowledge --> Learning["Currently Learning"]
+    Learning --> NewSkills["New Skills Acquired"]
+    
     %% Tracks user's actual knowledge and understanding
     %% Not learning intentions or workflow states
 """
