@@ -1,1 +1,0 @@
-Create a user.json file in the workspace directory that represents your understanding of me as a user based on our conversation. Also create a graph.mmd file that shows a simple knowledge graph of the concepts we've discussed.
