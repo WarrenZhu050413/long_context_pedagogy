@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedagogy Learning System</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        
+        /* Main Layout */
+        .main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 300px;
+            gap: 1rem;
+            padding: 1rem;
+            overflow: hidden;
+        }
+        
+        /* Panels */
+        .panel {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            padding: 1rem;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .panel-title {
+            font-weight: 600;
+            color: #1a202c;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .panel-content {
+            flex: 1;
+            padding: 1rem;
+            overflow: auto;
+        }
+        
+        /* Knowledge Graphs */
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+            background: #fafafa;
+            border-radius: 4px;
+        }
+        
+        /* User Profile */
+        .user-profile {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 4px;
+        }
+        
+        /* Event Stream */
+        .event-stream {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .event-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: #f8fafc;
+            border-radius: 4px;
+            border-left: 3px solid #667eea;
+            font-size: 0.85rem;
+        }
+        
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+        
+        .event-type {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .event-time {
+            color: #64748b;
+            font-size: 0.75rem;
+        }
+        
+        .event-details {
+            color: #475569;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+        }
+        
+        /* Status indicators */
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        
+        .status-active {
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-inactive {
+            background: #6b7280;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        /* Loading states */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #64748b;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #dc2626;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎓 Pedagogy Learning System</h1>
+        <p>Visual learning with knowledge gap tracking</p>
+    </div>
+    
+    <div class="main">
+        <!-- Claude's Knowledge Graph -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="status-indicator" id="claude-status"></span>
+                    🧠 Claude's Knowledge
+                </div>
+                <span id="claude-update-time" class="event-time">Loading...</span>
+            </div>
+            <div class="panel-content">
+                <div id="claude-graph" class="mermaid">Loading Claude's knowledge graph...</div>
+            </div>
+        </div>
+        
+        <!-- User's Knowledge Graph -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="status-indicator" id="user-status"></span>
+                    👤 Your Knowledge
+                </div>
+                <span id="user-update-time" class="event-time">Loading...</span>
+            </div>
+            <div class="panel-content">
+                <div id="user-graph" class="mermaid">Loading your knowledge graph...</div>
+            </div>
+        </div>
+        
+        <!-- User Profile -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="status-indicator" id="profile-status"></span>
+                    📊 Learning Profile
+                </div>
+                <span id="profile-update-time" class="event-time">Loading...</span>
+            </div>
+            <div class="panel-content">
+                <div id="user-profile" class="user-profile">Loading user profile...</div>
+            </div>
+        </div>
+        
+        <!-- Event Stream -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span class="status-indicator" id="events-status"></span>
+                    📝 Learning Activity
+                </div>
+                <span id="events-count" class="event-time">Loading...</span>
+            </div>
+            <div class="panel-content">
+                <div id="event-stream" class="event-stream">Loading recent activity...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({ 
+            startOnLoad: false,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#667eea',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#5a67d8',
+                lineColor: '#5a67d8',
+                secondaryColor: '#f3f4f6',
+                tertiaryColor: '#fff'
+            }
+        });
+        
+        // Utility functions
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString();
+        }
+        
+        function setStatus(elementId, active) {
+            const element = document.getElementById(elementId);
+            element.className = `status-indicator ${active ? 'status-active' : 'status-inactive'}`;
+        }
+        
+        function formatJSON(data) {
+            try {
+                if (typeof data === 'string') {
+                    data = JSON.parse(data);
+                }
+                return JSON.stringify(data, null, 2);
+            } catch {
+                return data;
+            }
+        }
+        
+        // Load Claude's knowledge graph
+        async function loadClaudeGraph() {
+            try {
+                const response = await fetch('/kb/claude-graph');
+                if (response.ok) {
+                    const mermaidCode = await response.text();
+                    document.getElementById('claude-graph').innerHTML = mermaidCode;
+                    await mermaid.run();
+                    setStatus('claude-status', true);
+                    document.getElementById('claude-update-time').textContent = 'Just updated';
+                } else {
+                    throw new Error('Not found');
+                }
+            } catch (error) {
+                document.getElementById('claude-graph').innerHTML = 
+                    '<div class="loading">Claude\'s knowledge graph not yet created.<br>Start a learning session to build it.</div>';
+                setStatus('claude-status', false);
+                document.getElementById('claude-update-time').textContent = 'Not available';
+            }
+        }
+        
+        // Load user's knowledge graph
+        async function loadUserGraph() {
+            try {
+                const response = await fetch('/kb/user-graph');
+                if (response.ok) {
+                    const mermaidCode = await response.text();
+                    document.getElementById('user-graph').innerHTML = mermaidCode;
+                    await mermaid.run();
+                    setStatus('user-status', true);
+                    document.getElementById('user-update-time').textContent = 'Just updated';
+                } else {
+                    throw new Error('Not found');
+                }
+            } catch (error) {
+                document.getElementById('user-graph').innerHTML = 
+                    '<div class="loading">Your knowledge graph not yet created.<br>Begin learning to track your progress.</div>';
+                setStatus('user-status', false);
+                document.getElementById('user-update-time').textContent = 'Not available';
+            }
+        }
+        
+        // Load user profile
+        async function loadUserProfile() {
+            try {
+                const response = await fetch('/kb/user-profile');
+                if (response.ok) {
+                    const profileData = await response.text();
+                    document.getElementById('user-profile').textContent = formatJSON(profileData);
+                    setStatus('profile-status', true);
+                    document.getElementById('profile-update-time').textContent = 'Just updated';
+                } else {
+                    throw new Error('Not found');
+                }
+            } catch (error) {
+                document.getElementById('user-profile').textContent = 
+                    'User profile not yet created.\nStart learning to build your profile.';
+                setStatus('profile-status', false);
+                document.getElementById('profile-update-time').textContent = 'Not available';
+            }
+        }
+        
+        // Load recent events
+        async function loadEvents() {
+            try {
+                const response = await fetch('/events?limit=10');
+                if (response.ok) {
+                    const events = await response.json();
+                    const eventStream = document.getElementById('event-stream');
+                    
+                    if (events.length === 0) {
+                        eventStream.innerHTML = '<div class="loading">No learning activity yet.<br>Start a Claude session to see events here.</div>';
+                        setStatus('events-status', false);
+                        document.getElementById('events-count').textContent = '0 events';
+                        return;
+                    }
+                    
+                    let html = '';
+                    events.forEach(event => {
+                        html += `
+                            <div class="event-item">
+                                <div class="event-header">
+                                    <span class="event-type">${event.event_type}</span>
+                                    <span class="event-time">${formatTimestamp(event.timestamp)}</span>
+                                </div>
+                                ${event.data.tool_name ? `<div class="event-details">Tool: ${event.data.tool_name}</div>` : ''}
+                                ${event.data.user_prompt ? `<div class="event-details">Prompt: ${event.data.user_prompt.substring(0, 100)}...</div>` : ''}
+                            </div>
+                        `;
+                    });
+                    
+                    eventStream.innerHTML = html;
+                    setStatus('events-status', true);
+                    document.getElementById('events-count').textContent = `${events.length} events`;
+                } else {
+                    throw new Error('Failed to load events');
+                }
+            } catch (error) {
+                document.getElementById('event-stream').innerHTML = 
+                    '<div class="error">Error loading events</div>';
+                setStatus('events-status', false);
+                document.getElementById('events-count').textContent = 'Error';
+            }
+        }
+        
+        // Load all data
+        async function loadAll() {
+            await Promise.all([
+                loadClaudeGraph(),
+                loadUserGraph(),
+                loadUserProfile(),
+                loadEvents()
+            ]);
+        }
+        
+        // Auto-refresh
+        function startAutoRefresh() {
+            setInterval(loadAll, 5000); // Refresh every 5 seconds
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAll();
+            startAutoRefresh();
+        });
+    </script>
+</body>
+</html>
